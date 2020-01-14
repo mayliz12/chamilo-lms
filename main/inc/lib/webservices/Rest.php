@@ -46,14 +46,23 @@ class Rest extends WebService
     const SAVE_USER = 'save_user';
     const SUBSCRIBE_USER_TO_COURSE = 'subscribe_user_to_course';
     const EXTRAFIELD_GCM_ID = 'gcm_registration_id';
+    const GET_USER_MESSAGES_RECEIVED = 'user_messages_received';
+    const GET_USER_MESSAGES_SENT = 'user_messages_sent';
+    const DELETE_USER_MESSAGE = 'delete_user_message';
+    const SET_MESSAGE_READ = 'set_message_read';
     const CREATE_CAMPUS = 'add_campus';
     const EDIT_CAMPUS = 'edit_campus';
     const DELETE_CAMPUS = 'delete_campus';
     const SAVE_SESSION = 'save_session';
     const GET_USERS = 'get_users';
-    const GET_COURSE = 'get_courses';
+    const GET_COURSES = 'get_courses';
     const ADD_COURSES_SESSION = 'add_courses_session';
-    const ADD_USER_SESSION = 'add_users_session';
+    const ADD_USERS_SESSION = 'add_users_session';
+    const CREATE_SESSION_FROM_MODEL = 'create_session_from_model';
+    const SUBSCRIBE_USER_TO_SESSION_FROM_USERNAME = 'subscribe_user_to_session_from_username';
+    const GET_SESSION_FROM_EXTRA_FIELD = 'get_session_from_extra_field';
+    const UPDATE_USER_FROM_USERNAME = 'update_user_from_username';
+    const USERNAME_EXIST = 'username_exist';
 
     /**
      * @var Session
@@ -205,6 +214,74 @@ class Rest extends WebService
                 'hasAttachments' => $hasAttachments,
                 'url' => api_get_path(WEB_CODE_PATH).'messages/view_message.php?'
                     .http_build_query(['type' => 1, 'id' => $message['id']]),
+            ];
+        }
+
+        return $messages;
+    }
+
+     /**
+     * @return array
+     */
+    public function getUserReceivedMessages()
+    {
+        $lastMessages = MessageManager::getReceivedMessages($this->user->getId(), 0);
+        $messages = [];
+
+        foreach ($lastMessages as $message) {
+            $hasAttachments = MessageManager::hasAttachments($message['id']);
+            $attachmentList = [];
+            if ($hasAttachments) {
+                $attachmentList = MessageManager::getAttachmentList($message['id']);
+            }
+            $messages[] = [
+                'id' => $message['id'],
+                'title' => $message['title'],
+                'msgStatus' => $message['msg_status'],
+                'sender' => [
+                    'id' => $message['user_id'],
+                    'lastname' => $message['lastname'],
+                    'firstname' => $message['firstname'],
+                    'completeName' => api_get_person_name($message['firstname'], $message['lastname']),
+                    'pictureUri' => $message['pictureUri'],
+                ],
+                'sendDate' => $message['send_date'],
+                'content' => $message['content'],
+                'hasAttachments' => $hasAttachments,
+                'attachmentList' => $attachmentList,
+                'url' => '',
+            ];
+        }
+
+        return $messages;
+    }
+
+    /**
+     * @return array
+     */
+    public function getUserSentMessages()
+    {
+        $lastMessages = MessageManager::getSentMessages($this->user->getId(), 0);
+        $messages = [];
+
+        foreach ($lastMessages as $message) {
+            $hasAttachments = MessageManager::hasAttachments($message['id']);
+
+            $messages[] = [
+                'id' => $message['id'],
+                'title' => $message['title'],
+                'msgStatus' => $message['msg_status'],
+                'receiver' => [
+                    'id' => $message['user_id'],
+                    'lastname' => $message['lastname'],
+                    'firstname' => $message['firstname'],
+                    'completeName' => api_get_person_name($message['firstname'], $message['lastname']),
+                    'pictureUri' => $message['pictureUri'],
+                ],
+                'sendDate' => $message['send_date'],
+                'content' => $message['content'],
+                'hasAttachments' => $hasAttachments,
+                'url' => '',
             ];
         }
 
@@ -566,7 +643,8 @@ class Rest extends WebService
                 'title' => $forumInfo['forum_title'],
                 'description' => $forumInfo['forum_comment'],
                 'image' => $forumInfo['forum_image'] ? ($webCoursePath.$forumInfo['forum_image']) : '',
-                'numberOfThreads' => isset($forumInfo['number_of_threads']) ? intval($forumInfo['number_of_threads']) : 0,
+                'numberOfThreads' =>
+                    isset($forumInfo['number_of_threads']) ? intval($forumInfo['number_of_threads']) : 0,
                 'lastPost' => null,
             ];
 
@@ -1131,13 +1209,13 @@ class Rest extends WebService
         if ($return) {
             $out = [
                 'status' => true,
-                'message' => 'Sesión creada correctamente',
+                'message' => get_lang('ANewSessionWasCreated'),
                 'id_session' => $return,
             ];
         } else {
             $out = [
                 'status' => false,
-                'message' => 'Error al crear la sesión',
+                'message' => get_lang('ErrorOccurred'),
             ];
         }
 
@@ -1180,10 +1258,10 @@ class Rest extends WebService
             $results['status'] = true;
             $results['code_course'] = $courseInfo['code'];
             $results['title_course'] = $courseInfo['title'];
-            $results['message'] = 'Curso registrado con exito';
+            $results['message'] = sprintf(get_lang('CourseXAdded'), $courseInfo['code']);
         } else {
             $results['status'] = false;
-            $results['message'] = 'Error al registrar el curso';
+            $results['message'] = get_lang('CourseCreationFailed');
         }
 
         return $results;
@@ -1192,11 +1270,12 @@ class Rest extends WebService
     /**
      * @param $user_param
      *
+     * @throws Exception
+     *
      * @return array
      */
     public function addUser($user_param)
     {
-        $results = [];
         $orig_user_id_value = [];
         $firstName = $user_param['firstname'];
         $lastName = $user_param['lastname'];
@@ -1234,7 +1313,7 @@ class Rest extends WebService
 
         // First check wether the login already exists.
         if (!UserManager::is_username_available($loginName)) {
-            $results[] = 0;
+            throw new Exception(get_lang('UserNameNotAvailable'));
         }
 
         $userId = UserManager::create_user(
@@ -1254,60 +1333,59 @@ class Rest extends WebService
             $hr_dept_id
         );
 
-        if ($userId) {
-            if (api_is_multiple_url_enabled()) {
-                if (api_get_current_access_url_id() != -1) {
-                    UrlManager::add_user_to_url(
-                        $userId,
-                        api_get_current_access_url_id()
-                    );
-                } else {
-                    UrlManager::add_user_to_url($userId, 1);
-                }
-            } else {
-                // We add by default the access_url_user table with access_url_id = 1
-                UrlManager::add_user_to_url($userId, 1);
-            }
-
-            // Save new field label into user_field table.
-            UserManager::create_extra_field(
-                $original_user_id_name,
-                1,
-                $original_user_id_name,
-                ''
-            );
-            // Save the external system's id into user_field_value table.
-            UserManager::update_extra_field_value(
-                $userId,
-                $original_user_id_name,
-                $original_user_id_value
-            );
-
-            if (is_array($extra_list) && count($extra_list) > 0) {
-                foreach ($extra_list as $extra) {
-                    $extra_field_name = $extra['field_name'];
-                    $extra_field_value = $extra['field_value'];
-                    // Save new field label into user_field table.
-                    UserManager::create_extra_field(
-                        $extra_field_name,
-                        1,
-                        $extra_field_name,
-                        ''
-                    );
-                    // Save the external system's id into user_field_value table.
-                    UserManager::update_extra_field_value(
-                        $userId,
-                        $extra_field_name,
-                        $extra_field_value
-                    );
-                }
-            }
-            $results[] = $userId;
-        } else {
-            $results[] = 0;
+        if (empty($userId)) {
+            throw new Exception(get_lang('UserNotRegistered'));
         }
 
-        return $results;
+        if (api_is_multiple_url_enabled()) {
+            if (api_get_current_access_url_id() != -1) {
+                UrlManager::add_user_to_url(
+                    $userId,
+                    api_get_current_access_url_id()
+                );
+            } else {
+                UrlManager::add_user_to_url($userId, 1);
+            }
+        } else {
+            // We add by default the access_url_user table with access_url_id = 1
+            UrlManager::add_user_to_url($userId, 1);
+        }
+
+        // Save new field label into user_field table.
+        UserManager::create_extra_field(
+            $original_user_id_name,
+            1,
+            $original_user_id_name,
+            ''
+        );
+        // Save the external system's id into user_field_value table.
+        UserManager::update_extra_field_value(
+            $userId,
+            $original_user_id_name,
+            $original_user_id_value
+        );
+
+        if (is_array($extra_list) && count($extra_list) > 0) {
+            foreach ($extra_list as $extra) {
+                $extra_field_name = $extra['field_name'];
+                $extra_field_value = $extra['field_value'];
+                // Save new field label into user_field table.
+                UserManager::create_extra_field(
+                    $extra_field_name,
+                    1,
+                    $extra_field_name,
+                    ''
+                );
+                // Save the external system's id into user_field_value table.
+                UserManager::update_extra_field_value(
+                    $userId,
+                    $extra_field_name,
+                    $extra_field_value
+                );
+            }
+        }
+
+        return [$userId];
     }
 
     /**
@@ -1335,6 +1413,20 @@ class Rest extends WebService
         }
 
         return [true];
+    }
+
+    public function deleteUserMessage($messageId, $messageType)
+    {
+        if ($messageType === "sent") {
+            return MessageManager::delete_message_by_user_sender($this->user->getId(), $messageId);
+        } else {
+            return MessageManager::delete_message_by_user_receiver($this->user->getId(), $messageId);
+        }
+    }
+
+    public function setMessageRead($messageId)
+    {
+        MessageManager::update_message($this->user->getId(), $messageId);
     }
 
     /**
@@ -1452,12 +1544,12 @@ class Rest extends WebService
         if ($result) {
             return [
                 'status' => $result,
-                'message' => 'Los cursos fueron añadidos a la sessión',
+                'message' => get_lang('Updated'),
             ];
         } else {
             return [
                 'status' => $result,
-                'message' => 'Error al añadir cursos a la sessión',
+                'message' => get_lang('ErrorOccurred'),
             ];
         }
     }
@@ -1485,7 +1577,7 @@ class Rest extends WebService
 
         return [
             'status' => true,
-            'message' => 'Error al añadir usuarios a la sessión',
+            'message' => get_lang('UsersAdded'),
         ];
     }
 
@@ -1503,5 +1595,378 @@ class Rest extends WebService
         $encoded = json_encode($params);
 
         return $encoded;
+    }
+
+    /**
+     * Creates a session from a model session
+     *
+     * @param $modelSessionId
+     * @param $sessionName
+     * @param $startDate
+     * @param $endDate
+     * @param array $extraFields
+     * @return int, the id of the new session
+     * @throws Exception
+     */
+    public function createSessionFromModel($modelSessionId, $sessionName, $startDate, $endDate, array $extraFields = [])
+    {
+        if (empty($modelSessionId)
+            || empty($sessionName)
+            || empty($startDate)
+            || empty($endDate)
+        ) {
+            throw new Exception(get_lang('NoData'));
+        }
+
+        if (!SessionManager::isValidId($modelSessionId)) {
+            throw new Exception(get_lang('ModelSessionDoesNotExist'));
+        }
+
+        $modelSession = SessionManager::fetch($modelSessionId);
+
+        if (api_is_multiple_url_enabled()) {
+            if (api_get_current_access_url_id() != -1) {
+                $modelSession['accessUrlId'] = api_get_current_access_url_id();
+            }
+        }
+
+        $newSessionId = SessionManager::create_session(
+            $sessionName,
+            $startDate,
+            $endDate,
+            $startDate,
+            $endDate,
+            $startDate,
+            $endDate,
+            $modelSession['coachId'],
+            $modelSession['sessionCategoryId'],
+            $modelSession['visibility'],
+            false,
+            $modelSession['duration'],
+            $modelSession['description'],
+            $modelSession['showDescription'],
+            $extraFields,
+            $modelSession['sessionAdminId'],
+            $modelSession['sendSubscriptionNotification'],
+            $modelSession['accessUrlId']
+        );
+
+        if (empty($newSessionId)) {
+            throw new Exception(get_lang('SessionNotRegistered'));
+        }
+
+        if (is_string($newSessionId)) {
+            throw new Exception($newSessionId);
+        }
+
+        $promotionId = $modelSession['promotion_id'];
+        if ($promotionId) {
+            $sessionList = array_keys(SessionManager::get_all_sessions_by_promotion($promotionId));
+            $sessionList[] = $newSessionId;
+            SessionManager::subscribe_sessions_to_promotion($modelSession['promotion_id'], $sessionList);
+        }
+
+        $modelExtraFields = [];
+        $fields = SessionManager::getFilteredExtraFields($modelSessionId);
+        if (is_array($fields) and !empty($fields)) {
+            foreach ($fields as $field) {
+                $modelExtraFields[$field['variable']] = $field['value'];
+            }
+        }
+        $allExtraFields = array_merge($modelExtraFields, $extraFields);
+        foreach ($allExtraFields as $name => $value) {
+            // SessionManager::update_session_extra_field_value returns false when no row is changed,
+            // which can happen since extra field values are initialized by SessionManager::create_session
+            // therefore we do not throw an exception when false is returned
+            SessionManager::update_session_extra_field_value($newSessionId, $name, $value);
+        }
+
+        $courseList = array_keys(SessionManager::get_course_list_by_session_id($modelSessionId));
+        if (is_array($courseList)
+            && !empty($courseList)
+            && !SessionManager::add_courses_to_session($newSessionId, $courseList)) {
+            throw new Exception(get_lang('CoursesNotAddedToSession'));
+        }
+
+        if (api_is_multiple_url_enabled()) {
+            if (api_get_current_access_url_id() != -1) {
+                UrlManager::add_session_to_url(
+                    $newSessionId,
+                    api_get_current_access_url_id()
+                );
+            } else {
+                UrlManager::add_session_to_url($newSessionId, 1);
+            }
+        } else {
+            UrlManager::add_session_to_url($newSessionId, 1);
+        }
+
+        return $newSessionId;
+    }
+
+    /**
+     * subscribes a user to a session
+     *
+     * @param int $sessionId the session id
+     * @param string $loginName the user's login name
+     * @return boolean, whether it worked
+     * @throws Exception
+     */
+    public function subscribeUserToSessionFromUsername($sessionId, $loginName)
+    {
+        if (!SessionManager::isValidId($sessionId)) {
+            throw new Exception(get_lang('SessionNotFound'));
+        }
+
+        $userId = UserManager::get_user_id_from_username($loginName);
+        if (False === $userId) {
+            throw new Exception(get_lang('UserNotFound'));
+        }
+
+        $subscribed = SessionManager::subscribeUsersToSession(
+            $sessionId,
+            [$userId],
+            SESSION_VISIBLE_READ_ONLY,
+            false);
+        if (!$subscribed) {
+            throw new Exception(get_lang('UserNotSubscribed'));
+        }
+
+        return true;
+    }
+
+    /**
+     * finds the session which has a specific value in a specific extra field
+     *
+     * @param $fieldName
+     * @param $fieldValue
+     * @return int, the matching session id
+     * @throws Exception when no session matched or more than one session matched
+     */
+    public function getSessionFromExtraField($fieldName, $fieldValue)
+    {
+        // find sessions that that have value in field
+        $valueModel = new ExtraFieldValue('session');
+        $sessionIdList = $valueModel->get_item_id_from_field_variable_and_field_value(
+            $fieldName, $fieldValue, false, false, true);
+
+        // throw if none found
+        if (empty($sessionIdList)) {
+            throw new Exception(get_lang('NoSessionMatched'));
+        }
+
+        // throw if more than one found
+        if (count($sessionIdList) > 1) {
+            throw new Exception(get_lang('MoreThanOneSessionMatched'));
+        }
+
+        // return sessionId
+        return intval($sessionIdList[0]['item_id']);
+    }
+
+    /**
+     * updates a user identified by its login name
+     *
+     * @param array $parameters
+     * @return boolean, true on success
+     * @throws Exception on failure
+     */
+    public function updateUserFromUserName($parameters)
+    {
+        // find user
+        $userId = null;
+        if (!is_array($parameters) || empty($parameters)) {
+            throw new Exception('NoData');
+        }
+        foreach ($parameters as $name => $value) {
+            if (strtolower($name) === 'loginname') {
+                $userId = UserManager::get_user_id_from_username($value);
+                if (false === $userId) {
+                    throw new Exception(get_lang('UserNotFound'));
+                }
+                break;
+            }
+        }
+        if (is_null($userId)) {
+            throw new Exception(get_lang('NoData'));
+        }
+        /** @var User $user */
+        $user = UserManager::getRepository()->find($userId);
+        if (empty($user)) {
+            throw new Exception(get_lang('CouldNotLoadUser'));
+        }
+
+        // tell the world we are about to update a user
+        $hook = HookUpdateUser::create();
+        if (!empty($hook)) {
+            $hook->notifyUpdateUser(HOOK_EVENT_TYPE_PRE);
+        }
+
+        // apply submitted modifications
+        foreach ($parameters as $name => $value) {
+            switch (strtolower($name)) {
+                case 'email':
+                    $user->setEmail($value);
+                    break;
+                case 'enabled':
+                    $user->setEnabled($value);
+                    break;
+                case 'lastname':
+                    $user->setLastname($value);
+                    break;
+                case 'firstname':
+                    $user->setFirstname($value);
+                    break;
+                case 'phone':
+                    $user->setPhone($value);
+                    break;
+                case 'address':
+                    $user->setAddress($value);
+                    break;
+                case 'roles':
+                    $user->setRoles($value);
+                    break;
+                case 'profile_completed':
+                    $user->setProfileCompleted($value);
+                    break;
+                case 'auth_source':
+                    $user->setAuthSource($value);
+                    break;
+                case 'status':
+                    $user->setStatus($value);
+                    break;
+                case 'official_code':
+                    $user->setOfficialCode($value);
+                    break;
+                case 'picture_uri':
+                    $user->setPictureUri($value);
+                    break;
+                case 'creator_id':
+                    $user->setCreatorId($value);
+                    break;
+                case 'competences':
+                    $user->setCompetences($value);
+                    break;
+                case 'diplomas':
+                    $user->setDiplomas($value);
+                    break;
+                case 'openarea':
+                    $user->setOpenArea($value);
+                    break;
+                case 'teach':
+                    $user->setTeach($value);
+                    break;
+                case 'productions':
+                    $user->setProductions($value);
+                    break;
+                case 'language':
+                    $languages = api_get_languages();
+                    if (!in_array($value, $languages['folder'])) {
+                        throw new Exception(get_lang('LanguageUnavailable'));
+                    }
+                    $user->setLanguage($value);
+                    break;
+                case 'registration_date':
+                    $user->setRegistrationDate($value);
+                    break;
+                case 'expiration_date':
+                    $user->setExpirationDate(new DateTime(
+                        api_get_utc_datetime($value),
+                        new DateTimeZone('UTC')
+                    ));
+                    break;
+                case 'active':
+                    // see UserManager::update_user() usermanager.lib.php:1205
+                    if ($user->getActive() != $value) {
+                        $user->setActive($value);
+                        Event::addEvent($value ? LOG_USER_ENABLE : LOG_USER_DISABLE, LOG_USER_ID, $userId);
+                    }
+                    break;
+                case 'openid':
+                    $user->setOpenId($value);
+                    break;
+                case 'theme':
+                    $user->setTheme($value);
+                    break;
+                case 'hr_dept_id':
+                    $user->setHrDeptId($value);
+                    break;
+                case 'extra':
+                    if (is_array($value)) {
+                        if (count($value) > 0) {
+                            if (is_array($value[0])) {
+                                foreach ($value as $field) {
+                                    $fieldName = $field['field_name'];
+                                    $fieldValue = $field['field_value'];
+                                    if (!isset($fieldName) || !isset($fieldValue) ||
+                                        !UserManager::update_extra_field_value($userId, $fieldName, $fieldValue)) {
+                                        throw new Exception(
+                                            get_lang('CouldNotUpdateExtraFieldValue').': '.print_r($field, true));
+                                    }
+                                }
+                            } else {
+                                foreach ($value as $fieldName => $fieldValue) {
+                                    if (!UserManager::update_extra_field_value($userId, $fieldName, $fieldValue)) {
+                                        throw new Exception(get_lang('CouldNotUpdateExtraFieldValue').': '.$fieldName);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case 'username':
+                case 'api_key':
+                case 'action':
+                case 'loginname':
+                    break;
+                case 'email_canonical':
+                case 'locked':
+                case 'expired':
+                case 'credentials_expired':
+                case 'credentials_expire_at':
+                case 'expires_at':
+                case 'salt':
+                case 'last_login':
+                case 'created_at':
+                case 'updated_at':
+                case 'confirmation_token':
+                case 'password_requested_at':
+                case 'password': // see UserManager::update_user usermanager.lib.php:1182
+                case 'username_canonical':
+                default:
+                    throw new Exception(get_lang('UnsupportedUpdate')." '$name'");
+            }
+        }
+
+        // save modifications
+        UserManager::getManager()->updateUser($user, true);
+
+        // tell the world we just updated this user
+        if (!empty($hook)) {
+            $hook->setEventData(['user' => $user]);
+            $hook->notifyUpdateUser(HOOK_EVENT_TYPE_POST);
+        }
+
+        // invalidate cache for this user
+        $cacheAvailable = api_get_configuration_value('apc');
+        if ($cacheAvailable === true) {
+            $apcVar = api_get_configuration_value('apc_prefix').'userinfo_'.$userId;
+            if (apcu_exists($apcVar)) {
+                apcu_delete($apcVar);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns whether a user login name exists
+     *
+     * @param string $loginname the user login name
+     * @return bool whether the user login name exists
+     */
+    public function usernameExist($loginname)
+    {
+        return false !== api_get_user_info_from_username($loginname);
     }
 }

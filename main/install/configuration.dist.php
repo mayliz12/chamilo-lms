@@ -364,6 +364,8 @@ $_configuration['tracking_columns'] = [
 */
 // Hide session link of course_block on index/userportal
 //$_configuration['remove_session_url']= false ;
+// Allow foldable block for session list in session category on My courses tab
+//$_configuration['user_portal_foldable_session_category'] = false;
 //
 //
 // ------ AGENDA CONFIGURATION SETTINGS
@@ -1338,6 +1340,24 @@ requires extension "php-soap"  sudo apt-get install php-soap
 
 // LP view menu location. Options: "left" or "right"
 // $_configuration['lp_menu_location'] = 'left';
+
+// Show notification events
+/*CREATE TABLE IF NOT EXISTS notification_event (
+id INT unsigned NOT NULL auto_increment PRIMARY KEY,
+        title VARCHAR(255),
+        content TEXT,
+        link TEXT,
+        persistent INT,
+        day_diff INT,
+        event_type VARCHAR(255)
+    );
+ALTER TABLE notification_event ADD COLUMN event_id INT NULL;
+*/
+// create new user text extra field called 'notification_event' to save the persistent settings.
+// $_configuration['notification_event'] = false;
+
+//Add help text to put 2 names in registration form
+//$_configuration['registration_add_helptext_for_2_names'] = false;
 
 // KEEP THIS AT THE END
 // -------- Custom DB changes

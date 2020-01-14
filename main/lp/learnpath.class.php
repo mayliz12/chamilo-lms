@@ -34,6 +34,15 @@ use Symfony\Component\Finder\Finder;
 class learnpath
 {
     const MAX_LP_ITEM_TITLE_LENGTH = 32;
+    const STATUS_CSS_CLASS_NAME = [
+        'not attempted' => 'scorm_not_attempted',
+        'incomplete' => 'scorm_not_attempted',
+        'failed' => 'scorm_failed',
+        'completed' => 'scorm_completed',
+        'passed' => 'scorm_completed',
+        'succeeded' => 'scorm_completed',
+        'browsed' => 'scorm_completed',
+    ];
 
     public $attempt = 0; // The number for the current ID view.
     public $cc; // Course (code) this learnpath is located in. @todo change name for something more comprensible ...
@@ -3008,6 +3017,79 @@ class learnpath
     }
 
     /**
+     * Returns the CSS class name associated with a given item status
+     *
+     * @param $status string an item status
+     * @return string CSS class name
+     */
+    public static function getStatusCSSClassName($status)
+    {
+        if (array_key_exists($status, self::STATUS_CSS_CLASS_NAME)) {
+            return self::STATUS_CSS_CLASS_NAME[$status];
+        }
+        return '';
+    }
+
+    /**
+     * Generate the tree of contents for this learnpath as an associative array tree
+     * with keys id, title, status, type, description, path, parent_id, children
+     * (title and descriptions as secured)
+     * and clues for CSS class composition:
+     *  - booleans is_current, is_parent_of_current, is_chapter
+     *  - string status_css_class_name
+     *
+     * @param $parentId int restrict returned list to children of this parent
+     *
+     * @return array TOC as a table
+     *
+     */
+    public function getTOCTree($parentId = 0)
+    {
+        $toc = [];
+        $currentItemId = $this->get_current_item_id();
+
+        foreach ($this->ordered_items as $itemId) {
+            $item = $this->items[$itemId];
+            if ($item->get_parent() == $parentId) {
+                $title = $item->get_title();
+                if (empty($title)) {
+                    $title = self::rl_get_resource_name(api_get_course_id(), $this->get_id(), $itemId);
+                }
+
+                $itemData = [
+                    'id' => $itemId,
+                    'title' => Security::remove_XSS($title),
+                    'status' => $item->get_status(),
+                    'level' => $item->get_level(), // FIXME should not be needed
+                    'type' => $item->get_type(),
+                    'description' => Security::remove_XSS($item->get_description()),
+                    'path' => $item->get_path(),
+                    'parent_id' => $item->get_parent(),
+                    'children' => $this->getTOCTree($itemId),
+                    'is_current' => ($itemId == $currentItemId),
+                    'is_parent_of_current' => false,
+                    'is_chapter' => in_array($item->get_type(), self::getChapterTypes()),
+                    'status_css_class_name' => $this->getStatusCSSClassName($item->get_status()),
+                    'current_id' => $currentItemId, // FIXME should not be needed, not a property of item
+                ];
+
+                if (!empty($itemData['children'])) {
+                    foreach ($itemData['children'] as $child) {
+                        if ($child['is_current'] || $child['is_parent_of_current']) {
+                            $itemData['is_parent_of_current'] = true;
+                            break;
+                        }
+                    }
+                }
+
+                $toc[] = $itemData;
+            }
+        }
+
+        return $toc;
+    }
+
+    /**
      * Generate and return the table of contents for this learnpath. The JS
      * table returned is used inside of scorm_api.php.
      *
@@ -3157,18 +3239,8 @@ class learnpath
                 $listParent[] = $subtree;
             }
             if (!in_array($subtree['type'], $dirTypes) && $subtree['parent'] == null) {
-                $classStatus = [
-                    'not attempted' => 'scorm_not_attempted',
-                    'incomplete' => 'scorm_not_attempted',
-                    'failed' => 'scorm_failed',
-                    'completed' => 'scorm_completed',
-                    'passed' => 'scorm_completed',
-                    'succeeded' => 'scorm_completed',
-                    'browsed' => 'scorm_completed',
-                ];
-
-                if (isset($classStatus[$subtree['status']])) {
-                    $cssStatus = $classStatus[$subtree['status']];
+                if (array_key_exists($subtree['status'], self::STATUS_CSS_CLASS_NAME)) {
+                    $cssStatus = self::STATUS_CSS_CLASS_NAME[$subtree['status']];
                 }
 
                 $title = Security::remove_XSS($subtree['title']);
@@ -3231,15 +3303,6 @@ class learnpath
         $dirTypes = self::getChapterTypes();
         $currentItemId = $this->get_current_item_id();
         $list = [];
-        $classStatus = [
-            'not attempted' => 'scorm_not_attempted',
-            'incomplete' => 'scorm_not_attempted',
-            'failed' => 'scorm_failed',
-            'completed' => 'scorm_completed',
-            'passed' => 'scorm_completed',
-            'succeeded' => 'scorm_completed',
-            'browsed' => 'scorm_completed',
-        ];
 
         foreach ($tree as $subtree) {
             $subtree['tree'] = null;
@@ -3250,8 +3313,8 @@ class learnpath
                 } else {
                     $subtree['current'] = null;
                 }
-                if (isset($classStatus[$subtree['status']])) {
-                    $cssStatus = $classStatus[$subtree['status']];
+                if (array_key_exists($subtree['status'], self::STATUS_CSS_CLASS_NAME)) {
+                    $cssStatus = self::STATUS_CSS_CLASS_NAME[$subtree['status']];
                 }
 
                 $title = Security::remove_XSS($subtree['title']);
@@ -3298,23 +3361,14 @@ class learnpath
         $currentItemId = $this->get_current_item_id();
         $list = [];
         $arrayList = [];
-        $classStatus = [
-            'not attempted' => 'scorm_not_attempted',
-            'incomplete' => 'scorm_not_attempted',
-            'failed' => 'scorm_failed',
-            'completed' => 'scorm_completed',
-            'passed' => 'scorm_completed',
-            'succeeded' => 'scorm_completed',
-            'browsed' => 'scorm_completed',
-        ];
 
         foreach ($toc_list as $item) {
             $list['id'] = $item['id'];
             $list['status'] = $item['status'];
             $cssStatus = null;
 
-            if (isset($classStatus[$item['status']])) {
-                $cssStatus = $classStatus[$item['status']];
+            if (array_key_exists($item['status'], self::STATUS_CSS_CLASS_NAME)) {
+                $cssStatus = self::STATUS_CSS_CLASS_NAME[$item['status']];
             }
 
             $classStyle = ' ';
@@ -4576,32 +4630,31 @@ class learnpath
             return true;
         }
 
+	$noUserSubscribed = false;
+	$noGroupSubscribed = true;
         $users = $category->getUsers();
-
         if (empty($users) || !$users->count()) {
-            return true;
-        }
-
-        if ($category->hasUserAdded($user)) {
+            $noUserSubscribed = true;
+        } elseif ($category->hasUserAdded($user)) {
             return true;
         }
 
         $groups = GroupManager::getAllGroupPerUserSubscription($user->getId());
-        if (!empty($groups)) {
-            $em = Database::getManager();
+        $em = Database::getManager();
 
-            /** @var ItemPropertyRepository $itemRepo */
-            $itemRepo = $em->getRepository('ChamiloCourseBundle:CItemProperty');
+        /** @var ItemPropertyRepository $itemRepo */
+        $itemRepo = $em->getRepository('ChamiloCourseBundle:CItemProperty');
 
-            /** @var CourseRepository $courseRepo */
-            $courseRepo = $em->getRepository('ChamiloCoreBundle:Course');
-            $session = null;
-            if (!empty($sessionId)) {
-                $session = $em->getRepository('ChamiloCoreBundle:Session')->find($sessionId);
-            }
+        /** @var CourseRepository $courseRepo */
+        $courseRepo = $em->getRepository('ChamiloCoreBundle:Course');
+        $session = null;
+        if (!empty($sessionId)) {
+            $session = $em->getRepository('ChamiloCoreBundle:Session')->find($sessionId);
+        }
 
-            $course = $courseRepo->find($courseId);
+        $course = $courseRepo->find($courseId);
 
+	if ($courseId!=0) {
             // Subscribed groups to a LP
             $subscribedGroupsInLp = $itemRepo->getGroupsSubscribedToItem(
                 TOOL_LEARNPATH_CATEGORY,
@@ -4609,8 +4662,11 @@ class learnpath
                 $course,
                 $session
             );
+        }
 
-            if (!empty($subscribedGroupsInLp)) {
+	if (!empty($subscribedGroupsInLp)) {
+            $noGroupSubscribed = false;
+            if (!empty($groups)) {
                 $groups = array_column($groups, 'iid');
                 /** @var CItemProperty $item */
                 foreach ($subscribedGroupsInLp as $item) {
@@ -4622,8 +4678,8 @@ class learnpath
                 }
             }
         }
-
-        return false;
+        $response = $noGroupSubscribed && $noUserSubscribed;
+        return $response;
     }
 
     /**
@@ -9886,7 +9942,7 @@ class learnpath
                     name="min_'.$item['id'].'" 
                     type="number" 
                     min="0" 
-                    step="1" 
+                    step="any"
                     max="'.$item['max_score'].'" 
                     value="'.$selectedMinScoreValue.'" 
                 />';
@@ -9899,7 +9955,7 @@ class learnpath
                     name="max_'.$item['id'].'" 
                     type="number" 
                     min="0" 
-                    step="1" 
+                    step="any"
                     max="'.$item['max_score'].'" 
                     value="'.$selectedMaxScoreValue.'" 
                 />';
@@ -9914,7 +9970,7 @@ class learnpath
                     name="min_'.$item['id'].'" 
                     type="number" 
                     min="0" 
-                    step="1" 
+                    step="any"
                     max="'.$item['max_score'].'" 
                     value="'.$selectedMinScoreValue.'" 
                 />';
@@ -9926,7 +9982,7 @@ class learnpath
                     name="max_'.$item['id'].'" 
                     type="number" 
                     min="0" 
-                    step="1" 
+                    step="any"
                     max="'.$item['max_score'].'" 
                     value="'.$selectedMaxScoreValue.'" 
                 />';
@@ -12964,7 +13020,7 @@ EOD;
                 }
 
                 $documentPathInfo = pathinfo($document->getPath());
-                $mediaSupportedFiles = ['mp3', 'mp4', 'ogv', 'flv', 'm4v'];
+                $mediaSupportedFiles = ['mp3', 'mp4', 'ogv', 'ogg', 'flv', 'm4v'];
                 $extension = isset($documentPathInfo['extension']) ? $documentPathInfo['extension'] : '';
                 $showDirectUrl = !in_array($extension, $mediaSupportedFiles);
 
