@@ -1,0 +1,207 @@
+body {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-color: #513f9f;
+    font-family: 'Lato', sans-serif;
+}
+a{
+ color: #e3d7ff;
+}
+a:hover{
+    color: #FFFFFF;
+}
+.logo{
+    margin-bottom: 4rem;
+    margin-top: 4em;
+    display: inline-block;
+}
+.section-title-container{
+    box-sizing: border-box;
+    padding: 0;
+    text-align: left;
+    width: 86%;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+}
+.section-title{
+    font-size: 25px;
+    font-weight: 900;
+    line-height: 1em;
+    letter-spacing: 1px;
+    padding: 0;
+    margin: 0;
+    color: #FFFFFF;
+}
+.form-signin {
+    max-width: 70%;
+    padding: 3rem;
+    margin: 0 auto;
+}
+.form-signin .form-signin-heading,
+.form-signin .checkbox {
+    margin-bottom: 10px;
+}
+.form-signin .checkbox {
+    font-weight: 400;
+}
+.form-signin .form-control {
+    position: relative;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    height: auto;
+    padding: 10px;
+    font-size: 16px;
+}
+.form-signin .form-control:focus {
+    z-index: 2;
+}
+.form-signin input[type="email"] {
+    margin-bottom: -1px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.form-signin input[type="password"] {
+    margin-bottom: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+.form-signin .form-control{
+    border-radius: 0;
+    font-size: 16px;
+}
+.panel.panel-default{
+    border-radius: 0;
+    padding: 2rem;
+    background: transparent;
+    border: 1px solid #FFFFFF !important;
+    color: #FFFFFF;
+}
+.help-block{
+    color: #FFC107;
+    font-style: italic;
+}
+.alert-info {
+    color: #ffffff;
+    background-color: #673AB7;
+    border-color: #673AB7;
+}
+.alert-info a{
+    color: #FFC107;
+}
+.btn-primary{
+    background: #E91E63;
+    border-radius: 0;
+    text-transform: uppercase;
+    border: 1px solid #E91E63;
+    font-weight: bold;
+    padding: 10px 20px;
+    margin-bottom: 2rem;
+}
+.btn-primary:hover{
+    color: #FFFFFF;
+    background: #FF9800;
+    border: 1px solid #FF9800;
+}
+.btn-default{
+    border: 1px solid #808de8;
+    text-transform: uppercase;
+    border-radius: 0;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    color: #4E4957;
+    padding: 10px 20px;
+}
+.btn-default:hover{
+    color: #FFFFFF;
+    background-color: #FF9800;
+    border: 1px solid #FF9800;
+}
+.help{
+    margin-top: 1rem;
+    padding: 2rem;
+    font-size: 12px;
+    color: #FFFFFF;
+}
+.last-password{
+    margin-bottom: 2rem;
+}
+.form-lost-password legend{
+    display: none;
+}
+.form-lost-password #lost_password_submit{
+    display: inline-block;
+    width: 100%;
+}
+.form-register #registration_submit{
+    display: inline-block;
+    width: 100%;
+}
+#registration .col-sm-offset-2.col-sm-10,
+#lost_password .col-sm-offset-2.col-sm-10{
+    text-align: left;
+}
+.form-register{
+    width: 735px;
+    margin: auto;
+}
+.form-register .form-control{
+    border-radius: 0;
+}
+.form-register .form-group label{
+    font-weight: normal;
+}
+#registration .form-group:last-child{
+    display: none;
+}
+.custom_required{
+    font-size: 12px;
+}
+span.help-inline.help-block {
+    text-align: left;
+}
+/* Large desktop */
+@media (min-width: 1200px) {
+    .form-register{
+        width: 735px;
+        margin: auto;
+    }
+}
+ 
+/* Portrait tablet to landscape and desktop */
+@media (min-width: 768px) and (max-width: 979px) {
+    .form-register{
+        width: 735px;
+        margin: auto;
+    }
+}
+ 
+/* Landscape phone to portrait tablet */
+@media (max-width: 767px) {
+    .form-register{
+        width: 100%;
+    }
+}
+ 
+/* Landscape phones and down */
+@media (max-width: 480px) {
+    .form-signin{
+        max-width: 100%;
+        padding: 1rem;
+    }
+    .section-title-container{
+        width: 100%;
+        box-shadow: 0 -50px 0 0 #f2b66c inset;
+    }
+    /*
+    .section-title{
+        border-bottom: 3px solid #f2b66c;
+        padding-bottom: 1rem;
+    }*/
+    .form-register{
+        width: 100%;
+    }
+    .form-register .form-group{
+        text-align: left;
+    }
+}
