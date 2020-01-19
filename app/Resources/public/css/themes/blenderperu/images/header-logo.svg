@@ -96,10 +96,10 @@
      inkscape:current-layer="layer1"
      showgrid="false"
      units="px"
-     inkscape:window-width="1920"
-     inkscape:window-height="1016"
-     inkscape:window-x="0"
-     inkscape:window-y="27"
+     inkscape:window-width="1600"
+     inkscape:window-height="863"
+     inkscape:window-x="1920"
+     inkscape:window-y="0"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata466">
@@ -109,7 +109,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -119,7 +119,10 @@
      id="layer1"
      transform="translate(0,-282.4479)">
     <g
-       id="g1232">
+       id="g1232"
+       inkscape:export-filename="/home/aragonc/Escritorio/logo_blender_theme.png"
+       inkscape:export-xdpi="240.87268"
+       inkscape:export-ydpi="240.87268">
       <rect
          y="282.44791"
          x="-2.7755576e-17"
