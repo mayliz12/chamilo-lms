@@ -1,0 +1,1 @@
+{{ 'subjectSession'|get_lang }}
