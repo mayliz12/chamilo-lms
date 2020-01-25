@@ -209,9 +209,9 @@ table.lp_overview img {
 	margin-left:3px;
 }
 .navbar-learn .btn-success{
-	background-color: #E8BB70;
-	color: #4E4A58;
-	border-color: #E8BB70;
+	background-color: #ff4669;
+	color: #FFFFFF;
+	border-color: #ff4669;
 	border-radius: 0;
 	text-transform: uppercase;
 	font-weight: bold;
@@ -219,13 +219,13 @@ table.lp_overview img {
 	margin-left: 1rem;
 }
 .navbar-learn .btn-success:active:focus{
-	background-color: #be925f;
-	color: #4E4A58;
-	border-color: #E8BB70;
+	background-color: #ff4669;
+	color: #FFFFFF;
+	border-color: #ff4669;
 }
 .navbar-learn{
-	background-color: #8092ed;
-	border-color: #8092ed;
+	background-color: #41178A;
+	border-color: #41178A;
 	margin-bottom: 0;
 	border-radius: 0;
 	min-height: 6vh;
@@ -238,7 +238,7 @@ table.lp_overview img {
 	background-color: #636ef9;
 }
 .navbar-inverse.navbar-learn .navbar-nav > .open > a{
-	background-color: #e8bb70;
+	background-color: #ff4669;
 }
 .navbar-learn .navbar-nav li a {
 	padding-top: 1rem;
@@ -251,8 +251,8 @@ table.lp_overview img {
 	display: inline-block;
 }
 .icon-toolbar .fa{
-	background-color: #E8BB70;
-	color: #4E4A58;
+	background-color: #ff4669;
+	color: #FFF;
 }
 #learning_path_main{
 	height: 94vh;
