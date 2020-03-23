@@ -92,7 +92,7 @@ $rootWeb = api_get_path('WEB_PATH');
                         <div class="padding-login">
                             <form id="login-form" action="<?php echo api_get_path(WEB_PATH); ?>index.php" method="post">
                                 <div class="section-title-container">
-                                    <h2 class="section-title">Acceso Aula Virtual</h2>
+                                    <h2 class="section-title">Acceso a Neuropsi Virtual</h2>
                                 </div>
                                 <div class="form-group">
                                     <input type="text" class="form-control" id="user" name="login" placeholder="<?php echo custompages_get_lang('User'); ?>">

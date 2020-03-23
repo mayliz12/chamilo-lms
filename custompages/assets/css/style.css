@@ -1,7 +1,7 @@
 body {
     padding-top: 40px;
     padding-bottom: 40px;
-    background-color: #fff;
+    background: #e7f7ff url("../img/bgfondo.png");
     font-family: 'Lato', sans-serif;
 }
 a{
@@ -18,7 +18,7 @@ a{
     /*box-shadow: 0 -30px 0 0 #f2b66c inset;*/
     padding: 0;
     text-align: left;
-    width: 86%;
+    width: 100%;
     margin-bottom: 2rem;
 }
 .section-title{
