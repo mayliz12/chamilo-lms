@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="64"
+   height="64"
+   viewBox="0 0 16.933333 16.933333"
+   version="1.1"
+   id="svg8"
+   inkscape:version="0.92.4 (unknown)"
+   sodipodi:docname="scormbuilder.svg">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="9.1790378"
+     inkscape:cx="50.451675"
+     inkscape:cy="31.586631"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     units="px"
+     inkscape:window-width="1920"
+     inkscape:window-height="1016"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Capa 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-280.06667)">
+    <rect
+       style="opacity:0;fill:#e6e6e6;fill-opacity:1;stroke:none;stroke-width:0.10719798;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke fill markers"
+       id="rect1069"
+       width="16.933332"
+       height="16.933332"
+       x="-1.3175964e-08"
+       y="280.06665"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       inkscape:export-filename="/var/www/chamilo11/app/Resources/public/css/themes/playschool/icons/64/scormbuilder.png" />
+    <g
+       id="g916"
+       transform="matrix(0.2595179,0,0,0.2595179,1.200165,280.22888)"
+       inkscape:export-filename="/var/www/chamilo11/app/Resources/public/css/themes/playschool/icons/64/scormbuilder.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96">
+      <path
+         style="fill:#5c76b2"
+         inkscape:connector-curvature="0"
+         d="M 48,0.681 H 7 c -1.657,0 -3,1.343 -3,3 v 50 c 0,1.657 1.343,3 3,3 h 41 c 2.209,0 4,-1.791 4,-4 v -48 c 0,-2.209 -1.791,-4 -4,-4 z"
+         id="path914" />
+    </g>
+    <g
+       id="g920"
+       transform="matrix(0.2595179,0,0,0.2595179,1.200165,280.22888)"
+       inkscape:export-filename="/var/www/chamilo11/app/Resources/public/css/themes/playschool/icons/64/scormbuilder.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96">
+      <path
+         style="fill:#6fa4d8"
+         inkscape:connector-curvature="0"
+         d="M 46,0.681 H 7 c -1.657,0 -3,1.343 -3,3 v 50 c 0,1.657 1.343,3 3,3 h 39 c 2.209,0 4,-1.791 4,-4 v -48 c 0,-2.209 -1.791,-4 -4,-4 z"
+         id="path918" />
+    </g>
+    <g
+       id="g924"
+       transform="matrix(0.2595179,0,0,0.2595179,1.200165,280.22888)"
+       inkscape:export-filename="/var/www/chamilo11/app/Resources/public/css/themes/playschool/icons/64/scormbuilder.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96">
+      <path
+         style="fill:#dbdee3"
+         inkscape:connector-curvature="0"
+         d="m 46,2.681 h -2.555 c 0.344,0.59 0.555,1.268 0.555,2 v 48 c 0,0.732 -0.211,1.41 -0.555,2 H 46 c 1.105,0 2,-0.895 2,-2 v -48 c 0,-1.104 -0.895,-2 -2,-2 z"
+         id="path922" />
+    </g>
+    <g
+       id="g928"
+       transform="matrix(0.2595179,0,0,0.2595179,1.200165,280.22888)"
+       inkscape:export-filename="/var/www/chamilo11/app/Resources/public/css/themes/playschool/icons/64/scormbuilder.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96">
+      <path
+         style="fill:#5c76b2"
+         inkscape:connector-curvature="0"
+         d="M 40,0.681 H 7 c -1.657,0 -3,1.343 -3,3 v 50 c 0,1.657 1.343,3 3,3 h 33 c 2.209,0 4,-1.791 4,-4 v -48 c 0,-2.209 -1.791,-4 -4,-4 z"
+         id="path926" />
+    </g>
+    <g
+       id="g932"
+       transform="matrix(0.2595179,0,0,0.2595179,1.200165,280.22888)"
+       inkscape:export-filename="/var/www/chamilo11/app/Resources/public/css/themes/playschool/icons/64/scormbuilder.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96">
+      <path
+         style="fill:#6fa4d8"
+         inkscape:connector-curvature="0"
+         d="M 38,56.681 H 7 c -1.657,0 -3,-1.343 -3,-3 v -50 c 0,-1.657 1.343,-3 3,-3 h 31 c 2.209,0 4,1.791 4,4 v 48 c 0,2.21 -1.791,4 -4,4 z"
+         id="path930" />
+    </g>
+    <g
+       id="g1193"
+       transform="translate(0,2.5365766)"
+       inkscape:export-filename="/var/www/chamilo11/app/Resources/public/css/themes/playschool/icons/64/scormbuilder.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96">
+      <g
+         transform="matrix(0.2595179,0,0,0.2595179,1.200165,280.22888)"
+         id="g936">
+        <circle
+           id="circle934"
+           r="12"
+           cy="18.681"
+           cx="23"
+           style="fill:#5c76b2" />
+      </g>
+      <g
+         transform="matrix(0.2595179,0,0,0.2595179,1.200165,280.22888)"
+         id="g940">
+        <path
+           id="path938"
+           d="m 19,14.418 v 8.526 c 0,1.597 1.78,2.55 3.109,1.664 l 6.394,-4.263 c 1.187,-0.792 1.187,-2.537 0,-3.328 L 22.109,12.754 C 20.78,11.868 19,12.821 19,14.418 Z"
+           inkscape:connector-curvature="0"
+           style="fill:#f68820" />
+      </g>
+    </g>
+    <g
+       id="g964"
+       transform="matrix(0.2595179,0,0,0.2595179,1.200165,280.22888)"
+       inkscape:export-filename="/var/www/chamilo11/app/Resources/public/css/themes/playschool/icons/64/scormbuilder.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96">
+      <path
+         style="fill:#f68820"
+         inkscape:connector-curvature="0"
+         d="m 11.951,56.681 v 5.586 c 0,0.891 1.077,1.337 1.707,0.707 l 2.586,-2.586 c 0.391,-0.391 1.024,-0.391 1.414,0 l 2.635,2.635 C 20.923,63.653 22,63.207 22,62.316 v -5.635 z"
+         id="path962" />
+    </g>
+  </g>
+</svg>
