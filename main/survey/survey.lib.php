@@ -1,12 +1,11 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CourseBundle\Entity\CSurveyInvitation;
 
 /**
  * Class SurveyManager.
- *
- * @package chamilo.survey
  *
  * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University:
  * cleanup, refactoring and rewriting large parts (if not all) of the code
@@ -723,6 +722,8 @@ class SurveyManager
             $params['session_id'] = api_get_session_id();
             $params['title'] = $params['title'].' '.get_lang('Copy');
             unset($params['iid']);
+            $params['invited'] = 0;
+            $params['answered'] = 0;
             $new_survey_id = Database::insert($table_survey, $params);
 
             if ($new_survey_id) {
@@ -1118,7 +1119,7 @@ class SurveyManager
      *
      * @version January 2007
      */
-    public static function save_question($survey_data, $form_content)
+    public static function save_question($survey_data, $form_content, $showMessage = true)
     {
         $return_message = '';
         if (strlen($form_content['question']) > 1) {
@@ -1289,8 +1290,10 @@ class SurveyManager
             $return_message = 'PleaseEnterAQuestion';
         }
 
-        if (!empty($return_message)) {
-            Display::addFlash(Display::return_message(get_lang($return_message)));
+        if ($showMessage) {
+            if (!empty($return_message)) {
+                Display::addFlash(Display::return_message(get_lang($return_message)));
+            }
         }
 
         return $return_message;
@@ -1850,9 +1853,7 @@ class SurveyManager
      */
     public static function generate_survey_hash($survey_id, $course_id, $session_id, $group_id)
     {
-        $hash = hash('sha512', api_get_security_key().'_'.$course_id.'_'.$session_id.'_'.$group_id.'_'.$survey_id);
-
-        return $hash;
+        return hash('sha512', api_get_security_key().'_'.$course_id.'_'.$session_id.'_'.$group_id.'_'.$survey_id);
     }
 
     /**
@@ -2183,22 +2184,61 @@ class SurveyManager
 
         $questions = self::get_questions($surveyId);
 
-        $obj = new UserGroup();
+        if (empty($questions)) {
+            return false;
+        }
 
+        $obj = new UserGroup();
         $options['where'] = [' usergroup.course_id = ? ' => $courseId];
         $classList = $obj->getUserGroupInCourse($options);
 
+        $classToParse = [];
+        foreach ($classList as $class) {
+            $users = $obj->get_users_by_usergroup($class['id']);
+            if (empty($users)) {
+                continue;
+            }
+            $classToParse[] = [
+                'name' => $class['name'],
+                'users' => $users,
+            ];
+        }
+
+        self::parseMultiplicateUserList($classToParse, $questions, $courseId, $surveyData);
+
+        $extraFieldValue = new ExtraFieldValue('survey');
+        $groupData = $extraFieldValue->get_values_by_handler_and_field_variable($surveyId, 'group_id');
+        if ($groupData && !empty($groupData['value'])) {
+            $groupInfo = GroupManager::get_group_properties($groupData['value']);
+            if (!empty($groupInfo)) {
+                $users = GroupManager::getStudents($groupInfo['iid'], true);
+                if (!empty($users)) {
+                    $users = array_column($users, 'id');
+                    $classToParse = [
+                        [
+                            'name' => $groupInfo['name'],
+                            'users' => $users,
+                        ],
+                    ];
+                    self::parseMultiplicateUserList($classToParse, $questions, $courseId, $surveyData);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public static function parseMultiplicateUserList($itemList, $questions, $courseId, $surveyData)
+    {
+        $surveyId = $surveyData['survey_id'];
         $classTag = '{{class_name}}';
         $studentTag = '{{student_full_name}}';
         $classCounter = 0;
-        foreach ($classList as $class) {
+        foreach ($itemList as $class) {
             $className = $class['name'];
-            foreach ($questions as $question) {
-                $users = $obj->get_users_by_usergroup($class['id']);
-                if (empty($users)) {
-                    continue;
-                }
+            $users = $class['users'];
 
+            foreach ($questions as $question) {
                 $text = $question['question'];
                 if (strpos($text, $classTag) !== false) {
                     $replacedText = str_replace($classTag, $className, $text);
@@ -2212,14 +2252,13 @@ class SurveyManager
                         'question_id' => 0,
                         'shared_question_id' => 0,
                     ];
-                    self::save_question($surveyData, $values);
+                    self::save_question($surveyData, $values, false);
                     $classCounter++;
                     continue;
                 }
 
                 foreach ($users as $userId) {
                     $userInfo = api_get_user_info($userId);
-
                     if (strpos($text, $studentTag) !== false) {
                         $replacedText = str_replace($studentTag, $userInfo['complete_name'], $text);
                         $values = [
@@ -2242,11 +2281,11 @@ class SurveyManager
                             }
                         }
                         $values['answers'] = $answers;
-                        self::save_question($surveyData, $values);
+                        self::save_question($surveyData, $values, false);
                     }
                 }
 
-                if ($classCounter < count($classList)) {
+                if ($classCounter < count($itemList)) {
                     // Add end page
                     $values = [
                         'c_id' => $courseId,
@@ -2258,7 +2297,7 @@ class SurveyManager
                         'question_id' => 0,
                         'shared_question_id' => 0,
                     ];
-                    self::save_question($surveyData, $values);
+                    self::save_question($surveyData, $values, false);
                 }
             }
         }
@@ -2511,5 +2550,55 @@ class SurveyManager
         }
 
         return $content;
+    }
+
+    public static function sendToTutors($surveyId)
+    {
+        $survey = Database::getManager()->getRepository('ChamiloCourseBundle:CSurvey')->find($surveyId);
+        if (null === $survey) {
+            return false;
+        }
+
+        $extraFieldValue = new ExtraFieldValue('survey');
+        $groupData = $extraFieldValue->get_values_by_handler_and_field_variable($surveyId, 'group_id');
+        if ($groupData && !empty($groupData['value'])) {
+            $groupInfo = GroupManager::get_group_properties($groupData['value']);
+            if ($groupInfo) {
+                $tutors = GroupManager::getTutors($groupInfo);
+                if (!empty($tutors)) {
+                    SurveyUtil::saveInviteMail(
+                        $survey,
+                        ' ',
+                        ' ',
+                        false
+                    );
+
+                    foreach ($tutors as $tutor) {
+                        $subject = sprintf(get_lang('GroupSurveyX'), $tutor['complete_name']);
+                        $content = sprintf(
+                            get_lang('HelloXGroupX'),
+                            $tutor['complete_name'],
+                            $groupInfo['name']
+                        );
+
+                        SurveyUtil::saveInvitations(
+                            ['users' => $tutor['user_id']],
+                            $subject,
+                            $content,
+                            false,
+                            true,
+                            false,
+                            true
+                        );
+                    }
+                    Display::addFlash(Display::return_message(get_lang('Updated'), 'confirmation', false));
+                }
+                SurveyUtil::update_count_invited($survey->getCode());
+
+                return true;
+            }
+        }
+
+        return false;
     }
 }

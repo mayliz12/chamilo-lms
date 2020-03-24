@@ -561,7 +561,7 @@ class learnpath
         $id = (int) $id;
         $typeCleaned = Database::escape_string($type);
         $max_score = 100;
-        if ($type === 'quiz') {
+        if ($type === 'quiz' && $id) {
             $sql = 'SELECT SUM(ponderation)
                     FROM '.Database::get_course_table(TABLE_QUIZ_QUESTION).' as quiz_question
                     INNER JOIN '.Database::get_course_table(TABLE_QUIZ_TEST_QUESTION).' as quiz_rel_question
@@ -2571,6 +2571,7 @@ class learnpath
                     $percentage = $score;
                     $text = '/'.$maxScore;
                 }
+
                 return [$percentage, $text];
             }
         }
@@ -13672,6 +13673,115 @@ EOD;
     }
 
     /**
+     * Gets whether this SCORM learning path has been marked to use the score
+     * as progress. Takes into account whether the learnpath matches (SCORM
+     * content + less than 2 items).
+     *
+     * @return bool True if the score should be used as progress, false otherwise
+     */
+    public function getUseScoreAsProgress()
+    {
+        // If not a SCORM, we don't care about the setting
+        if ($this->get_type() != 2) {
+            return false;
+        }
+        // If more than one step in the SCORM, we don't care about the setting
+        if ($this->get_total_items_count() > 1) {
+            return false;
+        }
+        $extraFieldValue = new ExtraFieldValue('lp');
+        $doUseScore = false;
+        $useScore = $extraFieldValue->get_values_by_handler_and_field_variable($this->get_id(), 'use_score_as_progress');
+        if (!empty($useScore) && isset($useScore['value'])) {
+            $doUseScore = $useScore['value'];
+        }
+
+        return $doUseScore;
+    }
+
+    /**
+     * Get the user identifier (user_id or username
+     * Depends on scorm_api_username_as_student_id in app/config/configuration.php.
+     *
+     * @return string User ID or username, depending on configuration setting
+     */
+    public static function getUserIdentifierForExternalServices()
+    {
+        if (api_get_configuration_value('scorm_api_username_as_student_id')) {
+            return api_get_user_info(api_get_user_id())['username'];
+        } elseif (api_get_configuration_value('scorm_api_extrafield_to_use_as_student_id') != null) {
+            $extraFieldValue = new ExtraFieldValue('user');
+            $extrafield = $extraFieldValue->get_values_by_handler_and_field_variable(api_get_user_id(), api_get_configuration_value('scorm_api_extrafield_to_use_as_student_id'));
+
+            return $extrafield['value'];
+        } else {
+            return api_get_user_id();
+        }
+    }
+
+    /**
+     * Save the new order for learning path items.
+     *
+     * We have to update parent_item_id, previous_item_id, next_item_id, display_order in the database.
+     *
+     * @param array $orderList A associative array with item ID as key and parent ID as value.
+     * @param int   $courseId
+     */
+    public static function sortItemByOrderList(array $orderList, $courseId = 0)
+    {
+        $courseId = $courseId ?: api_get_course_int_id();
+        $itemList = new LpItemOrderList();
+
+        foreach ($orderList as $id => $parentId) {
+            $item = new LpOrderItem($id, $parentId);
+            $itemList->add($item);
+        }
+
+        $parents = $itemList->getListOfParents();
+
+        foreach ($parents as $parentId) {
+            $sameParentLpItemList = $itemList->getItemWithSameParent($parentId);
+            $previous_item_id = 0;
+            for ($i = 0; $i < count($sameParentLpItemList->list); $i++) {
+                $item_id = $sameParentLpItemList->list[$i]->id;
+                // display_order
+                $display_order = $i + 1;
+                $itemList->setParametersForId($item_id, $display_order, 'display_order');
+                // previous_item_id
+                $itemList->setParametersForId($item_id, $previous_item_id, 'previous_item_id');
+                $previous_item_id = $item_id;
+                // next_item_id
+                $next_item_id = 0;
+                if ($i < count($sameParentLpItemList->list) - 1) {
+                    $next_item_id = $sameParentLpItemList->list[$i + 1]->id;
+                }
+                $itemList->setParametersForId($item_id, $next_item_id, 'next_item_id');
+            }
+        }
+
+        $table = Database::get_course_table(TABLE_LP_ITEM);
+
+        foreach ($itemList->list as $item) {
+            $params = [];
+            $params['display_order'] = $item->display_order;
+            $params['previous_item_id'] = $item->previous_item_id;
+            $params['next_item_id'] = $item->next_item_id;
+            $params['parent_item_id'] = $item->parent_item_id;
+
+            Database::update(
+                $table,
+                $params,
+                [
+                    'iid = ? AND c_id = ? ' => [
+                        (int) $item->id,
+                        (int) $courseId,
+                    ],
+                ]
+            );
+        }
+    }
+
+    /**
      * Get the depth level of LP item.
      *
      * @param array $items
@@ -13774,48 +13884,5 @@ EOD;
         }
 
         return '';
-    }
-    /**
-     * Gets whether this SCORM learning path has been marked to use the score
-     * as progress. Takes into account whether the learnpath matches (SCORM
-     * content + less than 2 items).
-     * @return bool True if the score should be used as progress, false otherwise
-     */
-    public function getUseScoreAsProgress()
-    {
-        // If not a SCORM, we don't care about the setting
-        if ($this->get_type() != 2) {
-            return false;
-        }
-        // If more than one step in the SCORM, we don't care about the setting
-        if ($this->get_total_items_count() > 1) {
-            return false;
-        }
-        $extraFieldValue = new ExtraFieldValue('lp');
-        $doUseScore = false;
-        $useScore = $extraFieldValue->get_values_by_handler_and_field_variable($this->get_id(), 'use_score_as_progress');
-        if (!empty($useScore) && isset($useScore['value'])) {
-            $doUseScore = $useScore['value'];
-        }
-
-        return $doUseScore;
-    }
-    /**
-     * Get the user identifier (user_id or username
-     * Depends on scorm_api_username_as_student_id in app/config/configuration.php
-     *
-     * @return string User ID or username, depending on configuration setting
-     */
-    public static function getUserIdentifierForExternalServices()
-    {
-        if (api_get_configuration_value('scorm_api_username_as_student_id')) {
-            return api_get_user_info(api_get_user_id())['username'];
-	} elseif (api_get_configuration_value('scorm_api_extrafield_to_use_as_student_id') != null) {
-            $extraFieldValue = new ExtraFieldValue('user');
-            $extrafield = $extraFieldValue->get_values_by_handler_and_field_variable(api_get_user_id(), api_get_configuration_value('scorm_api_extrafield_to_use_as_student_id'));
-            return $extrafield['value'];
-        } else {
-            return api_get_user_id();
-        } 
     }
 }

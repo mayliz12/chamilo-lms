@@ -28,7 +28,7 @@ $authRequest = new AuthnRequest($settings);
 $samlRequest = $authRequest->getRequest();
 $idpData = $settings->getIdPData();
 
-if (isset($_GET['sso'])) {
+if (isset($_GET['email']) || isset($_GET['email_bis'])) {
     $auth->login();
 // If AuthNRequest ID need to be saved in order to later validate it, do instead
     /*$ssoBuiltUrl = $auth->login(null, [], false, false, true);
@@ -38,37 +38,12 @@ if (isset($_GET['sso'])) {
     header('Location: ' . $ssoBuiltUrl);
     exit();*/
 } elseif (isset($_GET['slo'])) {
-    /*
-    if (isset($idpData['singleLogoutService']) && isset($idpData['singleLogoutService']['url'])) {
-        $sloUrl = $idpData['singleLogoutService']['url'];
-    } else {
-        throw new Exception("The IdP does not support Single Log Out");
-    }
-
-    if (isset($_SESSION['samlSessionIndex']) && !empty($_SESSION['samlSessionIndex'])) {
-        $logoutRequest = new \OneLogin\Saml2\LogoutRequest($settings, null, $_SESSION['samlSessionIndex']);
-    } else {
-        $logoutRequest = new \OneLogin\Saml2\LogoutRequest($settings);
-    }
-    $samlRequest = $logoutRequest->getRequest();
-    $parameters = array('SAMLRequest' => $samlRequest);
-    $url = \OneLogin\Saml2\Utils::redirect($sloUrl, $parameters, true);
-    header("Location: $url");
-    exit;*/
     $returnTo = null;
     $parameters = [];
     $nameId = Session::read('samlNameId');
     $sessionIndex = Session::read('samlSessionIndex');
     $nameIdFormat = Session::read('samlNameIdFormat');
     $auth->logout($returnTo, $parameters, $nameId, $sessionIndex, false, $nameIdFormat);
-
-// If LogoutRequest ID need to be saved in order to later validate it, do instead
-    // $sloBuiltUrl = $auth->logout(null, [], $nameId, $sessionIndex, true);
-    /*$_SESSION['LogoutRequestID'] = $auth->getLastRequestID();
-    header('Pragma: no-cache');
-    header('Cache-Control: no-cache, must-revalidate');
-    header('Location: ' . $sloBuiltUrl);
-    exit();*/
 } elseif (isset($_GET['acs'])) {
     $requestID = Session::read('AuthNRequestID');
     $auth->processResponse($requestID);
@@ -84,14 +59,41 @@ if (isset($_GET['sso'])) {
 
     $attributes = $auth->getAttributes();
 
+    $valueList = [];
+    $attributeNameList = [
+        'email',
+        'username',
+        'firstname',
+        'lastname1',
+        'lastname2',
+    ];
+
+    // Check normal params
+    foreach ($attributeNameList as $name) {
+        if (isset($attributes[$name]) && !empty($attributes[$name])) {
+            $valueList[$name] = $attributes[$name];
+        }
+    }
+
+    // Check bis params
+    foreach ($attributeNameList as $name) {
+        $bisName = $name.'_bis';
+        if (isset($attributes[$bisName]) && !empty($attributes[$bisName])) {
+            $valueList[$name] = $attributes[$bisName];
+        }
+    }
+
+    $attributes = $valueList;
+
     if (!isset($attributes['email']) ||
         !isset($attributes['firstname']) ||
         !isset($attributes['lastname1']) ||
         !isset($attributes['lastname2']) ||
         !isset($attributes['username'])
     ) {
-        var_dump($attributes);
-        echo 'Not enough parameters';
+        echo 'Not enough parameters, current values: ';
+        echo '<pre>';
+        var_dump($auth->getAttributes());
         exit;
     }
 
@@ -105,7 +107,6 @@ if (isset($_GET['sso'])) {
 
     if (empty($userInfo)) {
         $lastName = $attributes['lastname1'].' '.$attributes['lastname2'];
-        //$username = UserManager::create_unique_username($attributes['firstname'], $lastName);
         $userId = UserManager::create_user(
             $attributes['firstname'],
             $lastName,
@@ -135,20 +136,16 @@ if (isset($_GET['sso'])) {
     }
 
     if (!empty($userId)) {
+        $courseCode = null;
         if (isset($settingsInfo['course_list']) && !empty($settingsInfo['course_list'])) {
             foreach ($settingsInfo['course_list'] as $courseCode) {
                 CourseManager::subscribeUser($userId, $courseCode, STUDENT, 0, 0, false);
             }
         }
 
-        $result = Tracking::getCourseLpProgress($userId, 0);
-        echo json_encode($result);
-    } else {
-        echo 'User not found';
-    }
-    exit;
+        // Clean flash messages
+        Session::write('flash_messages', '');
 
-    if (!empty($userId)) {
         // Set chamilo sessions
         Session::write('samlUserdata', $auth->getAttributes());
         Session::write('samlNameId', $auth->getNameId());
@@ -161,6 +158,20 @@ if (isset($_GET['sso'])) {
         Session::write('_user', $userInfo);
         Session::write('is_platformAdmin', false);
         Session::write('is_allowedCreateCourse', false);
+
+        if (!empty($courseCode)) {
+            $courseInfo = api_get_course_info($courseCode);
+            header('Location: '.$courseInfo['course_public_url']);
+            exit;
+        }
+        header('Location: '.api_get_path(WEB_PATH).'user_portal.php');
+        exit;
+    } else {
+        echo 'User not found';
+    }
+    exit;
+
+    if (!empty($userId)) {
     } else {
         Display::addFlash(Display::return_message(get_lang('InvalidId')));
     }

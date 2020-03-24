@@ -497,7 +497,7 @@ switch ($action) {
             break;
         }
 
-        if ($action == 'get_user_course_report') {
+        if ($action === 'get_user_course_report') {
             $count = CourseManager::get_count_user_list_from_course_code(
                 false,
                 null,
@@ -1667,7 +1667,7 @@ switch ($action) {
         $columns = $sessionColumns['simple_column_name'];
 
         switch ($listType) {
-            case 'complete' :
+            case 'complete':
                 $result = SessionManager::get_sessions_admin_complete(
                     [
                         'where' => $whereCondition,

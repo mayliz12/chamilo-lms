@@ -130,27 +130,27 @@ class SessionManager
      *
      * @author Carlos Vargas <carlos.vargas@beeznest.com>, from existing code
      *
-     * @param string   $name
-     * @param string   $startDate                    (YYYY-MM-DD hh:mm:ss)
-     * @param string   $endDate                      (YYYY-MM-DD hh:mm:ss)
-     * @param string   $displayStartDate             (YYYY-MM-DD hh:mm:ss)
-     * @param string   $displayEndDate               (YYYY-MM-DD hh:mm:ss)
-     * @param string   $coachStartDate               (YYYY-MM-DD hh:mm:ss)
-     * @param string   $coachEndDate                 (YYYY-MM-DD hh:mm:ss)
-     * @param mixed    $coachId                      If int, this is the session coach id,
-     *                                               if string, the coach ID will be looked for from the user table
-     * @param int      $sessionCategoryId            ID of the session category in which this session is registered
-     * @param int      $visibility                   Visibility after end date (0 = read-only, 1 = invisible, 2 = accessible)
-     * @param bool     $fixSessionNameIfExists
-     * @param string   $duration
-     * @param string   $description                  Optional. The session description
-     * @param int      $showDescription              Optional. Whether show the session description
-     * @param array    $extraFields
-     * @param int      $sessionAdminId               Optional. If this sessions was created by a session admin, assign it to him
-     * @param bool     $sendSubscriptionNotification Optional.
-     *                                               Whether send a mail notification to users being subscribed
-     * @param int      $accessUrlId                  Optional.
-     * @param int      $status
+     * @param string $name
+     * @param string $startDate                    (YYYY-MM-DD hh:mm:ss)
+     * @param string $endDate                      (YYYY-MM-DD hh:mm:ss)
+     * @param string $displayStartDate             (YYYY-MM-DD hh:mm:ss)
+     * @param string $displayEndDate               (YYYY-MM-DD hh:mm:ss)
+     * @param string $coachStartDate               (YYYY-MM-DD hh:mm:ss)
+     * @param string $coachEndDate                 (YYYY-MM-DD hh:mm:ss)
+     * @param mixed  $coachId                      If int, this is the session coach id,
+     *                                             if string, the coach ID will be looked for from the user table
+     * @param int    $sessionCategoryId            ID of the session category in which this session is registered
+     * @param int    $visibility                   Visibility after end date (0 = read-only, 1 = invisible, 2 = accessible)
+     * @param bool   $fixSessionNameIfExists
+     * @param string $duration
+     * @param string $description                  Optional. The session description
+     * @param int    $showDescription              Optional. Whether show the session description
+     * @param array  $extraFields
+     * @param int    $sessionAdminId               Optional. If this sessions was created by a session admin, assign it to him
+     * @param bool   $sendSubscriptionNotification Optional.
+     *                                             Whether send a mail notification to users being subscribed
+     * @param int    $accessUrlId                  Optional.
+     * @param int    $status
      *
      * @return mixed Session ID on success, error message otherwise
      *
@@ -478,10 +478,11 @@ class SessionManager
     /**
      * Get session list for a session admin or platform admin.
      *
-     * @param int   $userId   User Id for the session admin.
-     * @param array $options  Optional. Order and limit keys.
-     * @param bool  $getCount Optional. Whether to get all the results or only the count.
-     * @param array $columns  Optional. Columns from jqGrid.
+     * @param int    $userId   User Id for the session admin.
+     * @param array  $options  Order and limit keys.
+     * @param bool   $getCount Whether to get all the results or only the count.
+     * @param array  $columns  Columns from jqGrid.
+     * @param string $listType
      *
      * @return array
      */
@@ -516,6 +517,7 @@ class SessionManager
 
         $extraFieldModel = new ExtraFieldModel('session');
         $conditions = $extraFieldModel->parseConditions($options);
+
         $sqlInjectJoins = $conditions['inject_joins'];
         $where .= $conditions['where'];
         $sqlInjectWhere = $conditions['inject_where'];
@@ -665,10 +667,10 @@ class SessionManager
     /**
      * Gets the admin session list callback of the session/session_list.php page.
      *
-     * @param array $options           order and limit keys
-     * @param bool  $getCount          Whether to get all the results or only the count
-     * @param array $columns
-     * @param array $extraFieldsToLoad
+     * @param array  $options           order and limit keys
+     * @param bool   $getCount          Whether to get all the results or only the count
+     * @param array  $columns
+     * @param array  $extraFieldsToLoad
      * @param string $listType
      *
      * @return mixed Integer for number of rows, or array of results
@@ -691,6 +693,7 @@ class SessionManager
         }
 
         $userId = api_get_user_id();
+
         $sessions = self::getSessionsForAdmin($userId, $options, $getCount, $columns, $listType);
         if ($getCount) {
             return (int) $sessions;
@@ -6047,13 +6050,6 @@ class SessionManager
         $direction = in_array(strtolower($direction), ['asc', 'desc']) ? $direction : 'asc';
         $column = Database::escape_string($column);
 
-        $limitCondition = '';
-        if (isset($from) && isset($numberItems)) {
-            $from = (int) $from;
-            $numberItems = (int) $numberItems;
-            $limitCondition = "LIMIT $from, $numberItems";
-        }
-
         $urlId = api_get_current_access_url_id();
 
         $sessionConditions = '';
@@ -6094,34 +6090,34 @@ class SessionManager
         }
 
         switch ($status) {
+            case 'admin':
             case 'drh':
                 break;
             case 'drh_all':
                 // Show all by DRH
                 if (empty($sessionIdList)) {
-                    $sessionsListSql = self::get_sessions_followed_by_drh(
+                    $sessionListFollowed = self::get_sessions_followed_by_drh(
                         $userId,
                         null,
                         null,
                         false,
-                        true,
                         true
                     );
-                } else {
+
+                    if (!empty($sessionListFollowed)) {
+                        $sessionIdList = array_column($sessionListFollowed, 'id');
+                    }
+                }
+
+                if (!empty($sessionIdList)) {
                     $sessionIdList = array_map('intval', $sessionIdList);
                     $sessionsListSql = "'".implode("','", $sessionIdList)."'";
-                }
-                if (!empty($sessionsListSql)) {
                     $sessionConditions = " AND s.id IN ($sessionsListSql) ";
                 }
-                break;
-            case 'session_admin':
-                $sessionConditions = " AND s.id_coach = $userId ";
-                $userConditionsFromDrh = '';
-                break;
-            case 'admin':
+
                 break;
             case 'teacher':
+            case 'session_admin':
                 $sessionConditions = " AND s.id_coach = $userId ";
                 $userConditionsFromDrh = '';
                 break;
@@ -6174,19 +6170,19 @@ class SessionManager
 
         $sql = "$masterSelect (
                 ($select
-                FROM $tbl_session s
+                    FROM $tbl_session s
+                    INNER JOIN $tbl_session_rel_access_url url ON (url.session_id = s.id)
                     INNER JOIN $tbl_session_rel_course_rel_user su ON (s.id = su.session_id)
                     INNER JOIN $tbl_user u ON (u.user_id = su.user_id)
-                    INNER JOIN $tbl_session_rel_access_url url ON (url.session_id = s.id)
                     $where
                     $sessionConditions
                     $userConditionsFromDrh
                 ) UNION (
                     $select
                     FROM $tbl_course c
+                    INNER JOIN $tbl_course_rel_access_url url ON (url.c_id = c.id)
                     INNER JOIN $tbl_course_user cu ON (cu.c_id = c.id)
                     INNER JOIN $tbl_user u ON (u.user_id = cu.user_id)
-                    INNER JOIN $tbl_course_rel_access_url url ON (url.c_id = c.id)
                     $where
                     $courseConditions
                     $userConditionsFromDrh
@@ -6210,11 +6206,18 @@ class SessionManager
             $column = str_replace('u.', '', $column);
             $sql .= " ORDER BY $column $direction ";
         }
+
+        $limitCondition = '';
+        if (isset($from) && isset($numberItems)) {
+            $from = (int) $from;
+            $numberItems = (int) $numberItems;
+            $limitCondition = "LIMIT $from, $numberItems";
+        }
+
         $sql .= $limitCondition;
         $result = Database::query($sql);
-        $result = Database::store_result($result);
 
-        return $result;
+        return Database::store_result($result);
     }
 
     /**
@@ -7608,23 +7611,15 @@ class SessionManager
 
         // Get session field values
         $extra = new ExtraFieldValue('session');
-        $sessionFieldValueList = $extra->get_all(
-            [
-                "field_id IN ( ".implode(", ", $variablePlaceHolders)." )" => array_keys($fields),
-            ]
-        );
+        $sessionFieldValueList = [];
+        foreach (array_keys($fields) as $fieldId) {
+            $sessionFieldValue = $extra->get_values_by_handler_and_field_id($sessionId, $fieldId);
+            if ($sessionFieldValue != false) {
+                $sessionFieldValueList[$fieldId] = $sessionFieldValue;
+            }
+        }
 
         foreach ($sessionFieldValueList as $sessionFieldValue) {
-            // Match session field values to session
-            if ($sessionFieldValue['item_id'] != $sessionId) {
-                continue;
-            }
-
-            // Check if session field value is set in session field list
-            if (!isset($fields[$sessionFieldValue['field_id']])) {
-                continue;
-            }
-
             $extrafieldVariable = $fields[$sessionFieldValue['field_id']];
             $extrafieldValue = $sessionFieldValue['value'];
 
@@ -9405,6 +9400,85 @@ class SessionManager
         return $result;
     }
 
+    public static function getStatusList()
+    {
+        return [
+            self::STATUS_PLANNED => get_lang('Planned'),
+            self::STATUS_PROGRESS => get_lang('InProgress'),
+            self::STATUS_FINISHED => get_lang('Finished'),
+            self::STATUS_CANCELLED => get_lang('Cancelled'),
+        ];
+    }
+
+    public static function getStatusLabel($status)
+    {
+        $list = self::getStatusList();
+
+        if (!isset($list[$status])) {
+            return get_lang('NoStatus');
+        }
+
+        return $list[$status];
+    }
+
+    public static function getDefaultSessionTab()
+    {
+        $default = 'all';
+        $view = api_get_configuration_value('default_session_list_view');
+
+        if (!empty($view)) {
+            $default = $view;
+        }
+
+        return $default;
+    }
+
+    /**
+     * @return array
+     */
+    public static function getSessionListTabs($listType)
+    {
+        $tabs = [
+            [
+                'content' => get_lang('AllSessionsShort'),
+                'url' => api_get_path(WEB_CODE_PATH).'session/session_list.php?list_type=all',
+            ],
+            [
+                'content' => get_lang('ActiveSessionsShort'),
+                'url' => api_get_path(WEB_CODE_PATH).'session/session_list.php?list_type=active',
+            ],
+            [
+                'content' => get_lang('ClosedSessionsShort'),
+                'url' => api_get_path(WEB_CODE_PATH).'session/session_list.php?list_type=close',
+            ],
+            [
+                'content' => get_lang('SessionListCustom'),
+                'url' => api_get_path(WEB_CODE_PATH).'session/session_list.php?list_type=custom',
+            ],
+            /*[
+                'content' => get_lang('Complete'),
+                'url' => api_get_path(WEB_CODE_PATH).'session/session_list_simple.php?list_type=complete',
+            ],*/
+        ];
+
+        switch ($listType) {
+            case 'all':
+                $default = 1;
+                break;
+            case 'active':
+                $default = 2;
+                break;
+            case 'close':
+                $default = 3;
+                break;
+            case 'custom':
+                $default = 4;
+                break;
+        }
+
+        return Display::tabsOnlyLink($tabs, $default);
+    }
+
     /**
      * @param int $id
      *
@@ -9541,85 +9615,5 @@ class SessionManager
         } else {
             return -1;
         }
-    }
-
-    public static function getStatusList()
-    {
-        return [
-            self::STATUS_PLANNED => get_lang('Planned'),
-            self::STATUS_PROGRESS => get_lang('InProgress'),
-            self::STATUS_FINISHED => get_lang('Finished'),
-            self::STATUS_CANCELLED => get_lang('Cancelled'),
-        ];
-    }
-
-    public static function getStatusLabel($status)
-    {
-        $list = self::getStatusList();
-
-        if (!isset($list[$status])) {
-
-            return get_lang('NoStatus');
-        }
-
-        return $list[$status];
-    }
-
-    public static function getDefaultSessionTab()
-    {
-        $default = 'all';
-        $view = api_get_configuration_value('default_session_list_view');
-
-        if (!empty($view)) {
-            $default = $view;
-        }
-
-        return $default;
-    }
-
-    /**
-     * @return array
-     */
-    public static function getSessionListTabs($listType)
-    {
-        $tabs = [
-            [
-                'content' => get_lang('AllSessionsShort'),
-                'url' => api_get_path(WEB_CODE_PATH).'session/session_list.php?list_type=all',
-            ],
-            [
-                'content' => get_lang('ActiveSessionsShort'),
-                'url' => api_get_path(WEB_CODE_PATH).'session/session_list.php?list_type=active',
-            ],
-            [
-                'content' => get_lang('ClosedSessionsShort'),
-                'url' => api_get_path(WEB_CODE_PATH).'session/session_list.php?list_type=close',
-            ],
-            [
-                'content' => get_lang('SessionListCustom'),
-                'url' => api_get_path(WEB_CODE_PATH).'session/session_list.php?list_type=custom',
-            ],
-            /*[
-                'content' => get_lang('Complete'),
-                'url' => api_get_path(WEB_CODE_PATH).'session/session_list_simple.php?list_type=complete',
-            ],*/
-        ];
-
-        switch ($listType) {
-            case 'all':
-                $default = 1;
-                break;
-            case 'active':
-                $default = 2;
-                break;
-            case 'close':
-                $default = 3;
-                break;
-            case 'custom':
-                $default = 4;
-                break;
-        }
-
-        return Display::tabsOnlyLink($tabs, $default);
     }
 }

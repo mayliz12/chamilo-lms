@@ -247,7 +247,7 @@ class Display
         if (is_array($query_vars)) {
             $table->set_additional_parameters($query_vars);
         }
-        if ($style == 'table') {
+        if ($style === 'table') {
             if (is_array($header) && count($header) > 0) {
                 foreach ($header as $index => $header_item) {
                     $table->set_header(
@@ -892,7 +892,7 @@ class Display
         // When moving this to production, the return_icon() calls should
         // ask for the SVG version directly
         $svgIcons = api_get_setting('icons_mode_svg');
-        if ($svgIcons == 'true' && $return_only_path == false) {
+        if ($svgIcons === 'true' && $return_only_path == false) {
             $svgImage = substr($image, 0, -3).'svg';
             if (is_file($code_path.$theme.'svg/'.$svgImage)) {
                 $icon = $w_code_path.$theme.'svg/'.$svgImage;
@@ -2583,7 +2583,7 @@ class Display
      * @param string $content
      * @param string $title
      * @param string $footer
-     * @param string $type        primary|success|info|warning|danger
+     * @param string $type            primary|success|info|warning|danger
      * @param string $extra
      * @param string $id
      * @param string $backgroundColor

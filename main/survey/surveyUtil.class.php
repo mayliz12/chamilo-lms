@@ -1605,11 +1605,11 @@ class SurveyUtil
      *
      * @version February 2007
      */
-    public static function export_complete_report_xls($survey_data, $filename, $user_id = 0)
+    public static function export_complete_report_xls($survey_data, $filename, $user_id = 0, $returnFile = false)
     {
         $course_id = api_get_course_int_id();
         $user_id = (int) $user_id;
-        $surveyId = isset($_GET['survey_id']) ? (int) $_GET['survey_id'] : 0;
+        $surveyId = $survey_data['survey_id'];
 
         if (empty($course_id) || empty($surveyId)) {
             return false;
@@ -1671,9 +1671,7 @@ class SurveyUtil
                 (isset($_POST['submit_question_filter']) && is_array($_POST['questions_filter']) &&
                 in_array($row['question_id'], $_POST['questions_filter']))
             ) {
-                if ($row['number_of_options'] == 0 &&
-                    ($row['type'] == 'open' || $row['type'] == 'comment')
-                ) {
+                if ($row['number_of_options'] == 0 && ($row['type'] === 'open' || $row['type'] === 'comment')) {
                     $worksheet->setCellValueByColumnAndRow(
                         $column,
                         $line,
@@ -1821,6 +1819,11 @@ class SurveyUtil
         $file = api_get_path(SYS_ARCHIVE_PATH).api_replace_dangerous_char($filename);
         $writer = new PHPExcel_Writer_Excel2007($spreadsheet);
         $writer->save($file);
+
+        if ($returnFile) {
+            return $file;
+        }
+
         DocumentManager::file_send_for_download($file, true, $filename);
 
         return null;
@@ -2250,34 +2253,19 @@ class SurveyUtil
         return $counter;
     }
 
-    /**
-     * Save the invitation mail.
-     *
-     * @param string Text of the e-mail
-     * @param int Whether the mail contents are for invite mail (0, default) or reminder mail (1)
-     *
-     * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
-     *
-     * @version January 2007
-     */
-    public static function save_invite_mail($mailtext, $mail_subject, $reminder = 0)
+    public static function saveInviteMail(CSurvey $survey, $content, $subject, $remind)
     {
-        $course_id = api_get_course_int_id();
-        // Database table definition
-        $table_survey = Database::get_course_table(TABLE_SURVEY);
-
         // Reminder or not
-        if ($reminder == 0) {
-            $mail_field = 'invite_mail';
+        if ($remind) {
+            $survey->setReminderMail($content);
         } else {
-            $mail_field = 'reminder_mail';
+            $survey->setInviteMail($content);
         }
 
-        $sql = "UPDATE $table_survey SET
-		        mail_subject='".Database::escape_string($mail_subject)."',
-		        $mail_field = '".Database::escape_string($mailtext)."'
-		        WHERE c_id = $course_id AND survey_id = '".intval($_GET['survey_id'])."'";
-        Database::query($sql);
+        $survey->setMailSubject($subject);
+        $em = Database::getManager();
+        $em->persist($survey);
+        $em->flush();
     }
 
     /**
@@ -2311,8 +2299,6 @@ class SurveyUtil
         $hideLink = false
     ) {
         if (!is_array($users_array)) {
-            // Should not happen
-
             return 0;
         }
 
@@ -2372,7 +2358,6 @@ class SurveyUtil
             if (in_array($value, $exclude_users)) {
                 continue;
             }
-
             // Get the unique invitation code if we already have it
             if ($reminder == 1 && array_key_exists($value, $survey_invitations)) {
                 $invitation_code = $survey_invitations[$value]['invitation_code'];
@@ -2828,8 +2813,6 @@ class SurveyUtil
         $table->set_header(2, get_lang('SurveyCode'));
         $table->set_header(3, get_lang('NumberOfQuestions'));
         $table->set_header(4, get_lang('Author'));
-        //$table->set_header(5, get_lang('Language'));
-        //$table->set_header(6, get_lang('Shared'));
         $table->set_header(5, get_lang('AvailableFrom'));
         $table->set_header(6, get_lang('AvailableUntil'));
         $table->set_header(7, get_lang('Invite'));
@@ -2846,7 +2829,13 @@ class SurveyUtil
         }
 
         $table->set_column_filter(8, 'anonymous_filter');
-        $table->set_form_actions(['delete' => get_lang('DeleteSurvey')]);
+        $actions = [
+            'export_all' => get_lang('Export'),
+            'send_to_tutors' => get_lang('SendToGroupTutors'),
+            'multiplicate' => get_lang('MultiplicateQuestions'),
+            'delete' => get_lang('DeleteSurvey'),
+        ];
+        $table->set_form_actions($actions);
         $table->display();
     }
 
@@ -2927,13 +2916,9 @@ class SurveyUtil
      * @param int  $survey_id the id of the survey
      * @param bool $drh
      *
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     * @throws \Doctrine\ORM\TransactionRequiredException
+     * @return string html code that are the actions that can be performed on any survey
      *
      * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
-     *
-     * @return string html code that are the actions that can be performed on any survey
      *
      * @version January 2007
      */
@@ -2970,9 +2955,7 @@ class SurveyUtil
         $type = $survey->getSurveyType();
 
         // Coach can see that only if the survey is in his session
-        if (api_is_allowed_to_edit() ||
-            api_is_element_in_the_session(TOOL_SURVEY, $survey_id)
-        ) {
+        if (api_is_allowed_to_edit() || api_is_element_in_the_session(TOOL_SURVEY, $survey_id)) {
             $editUrl = $codePath.'survey/create_new_survey.php?'.
                 http_build_query($params + ['action' => 'edit', 'survey_id' => $survey_id]);
             if ($survey->getSurveyType() == 3) {
@@ -3039,6 +3022,15 @@ class SurveyUtil
             Display::return_icon('mail_send.png', get_lang('Publish')),
             $codePath.'survey/survey_invite.php?'.http_build_query($params + ['survey_id' => $survey_id])
         );
+
+        $extraFieldValue = new ExtraFieldValue('survey');
+        $groupData = $extraFieldValue->get_values_by_handler_and_field_variable($survey_id, 'group_id');
+        if ($groupData && !empty($groupData['value'])) {
+            $actions[] = Display::url(
+                Display::return_icon('teacher.png', get_lang('SendToGroupTutors')),
+                $codePath.'survey/survey_list.php?action=send_to_tutors&'.http_build_query($params + ['survey_id' => $survey_id])
+            );
+        }
 
         if ($type != 3) {
             $actions[] = $hideReportingButton ? null : $reportingLink;
