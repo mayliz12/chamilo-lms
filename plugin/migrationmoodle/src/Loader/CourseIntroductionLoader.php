@@ -3,7 +3,6 @@
 
 namespace Chamilo\PluginBundle\MigrationMoodle\Loader;
 
-use Chamilo\CourseBundle\Entity\CToolIntro;
 use Chamilo\PluginBundle\MigrationMoodle\Interfaces\LoaderInterface;
 
 /**
@@ -18,17 +17,14 @@ class CourseIntroductionLoader implements LoaderInterface
      */
     public function load(array $incomingData)
     {
-        $intro = new CToolIntro();
-        $intro
-            ->setSessionId(0)
-            ->setCId($incomingData['c_id'])
-            ->setId(TOOL_COURSE_HOMEPAGE)
-            ->setIntroText($incomingData['description']);
-
-        $em = \Database::getManager();
-        $em->persist($intro);
-        $em->flush();
-
-        return $intro->getIid();
+        return \Database::insert(
+            \Database::get_course_table(TABLE_TOOL_INTRO),
+            [
+                'session_id' => 0,
+                'c_id' => $incomingData['c_id'],
+                'id' => TOOL_COURSE_HOMEPAGE,
+                'intro_text' => $incomingData['description'],
+            ]
+        );
     }
 }

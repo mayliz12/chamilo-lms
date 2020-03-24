@@ -4,40 +4,39 @@
 namespace Chamilo\PluginBundle\MigrationMoodle\Task;
 
 use Chamilo\PluginBundle\MigrationMoodle\Extractor\LoadedUsersFilterExtractor;
-use Chamilo\PluginBundle\MigrationMoodle\Loader\UserLearnPathLessonTimerLoader;
+use Chamilo\PluginBundle\MigrationMoodle\Loader\TrackCourseAccessLoader;
 use Chamilo\PluginBundle\MigrationMoodle\Transformer\BaseTransformer;
-use Chamilo\PluginBundle\MigrationMoodle\Transformer\Property\LoadedCourseModuleLessonLookup;
+use Chamilo\PluginBundle\MigrationMoodle\Transformer\Property\DateTimeObject;
+use Chamilo\PluginBundle\MigrationMoodle\Transformer\Property\LoadedCourseLookup;
 use Chamilo\PluginBundle\MigrationMoodle\Transformer\Property\LoadedUserLookup;
 use Chamilo\PluginBundle\MigrationMoodle\Transformer\Property\LoadedUserSessionLookup;
 
 /**
- * Class UsersLearnPathsLessonTimerTask.
- *
- * Update lp item (dirs) view.
+ * Class TrackCourseAccessTask.
  *
  * @package Chamilo\PluginBundle\MigrationMoodle\Task
  */
-class UsersLearnPathsLessonTimerTask extends BaseTask
+class TrackCourseAccessTask extends BaseTask
 {
     /**
-     * {@inheritdoc}
+     * @inheritDoc
      */
     public function getExtractConfiguration()
     {
-        $query = 'SELECT * FROM mdl_lesson_timer
-            WHERE completed = 1
-            GROUP BY lt.userid, lt.lessonid
-            ORDER BY userid, lessonid, starttime';
+        $query = "SELECT id, userid, courseid, timecreated, ip
+            FROM mdl_logstore_standard_log
+            WHERE (userid IS NOT NULL AND userid != 0) AND (courseid IS NOT NULL AND courseid != 0)
+            ORDER BY timecreated";
 
         $userFilter = $this->plugin->getUserFilterSetting();
 
         if (!empty($userFilter)) {
-            $query = "SELECT lt.* FROM mdl_lesson_timer lt
-                INNER JOIN mdl_user u ON lt.userid = u.id
-                WHERE u.username LIKE '$userFilter%'
-                    AND lt.completed = 1
-                GROUP BY lt.userid, lt.lessonid
-                ORDER BY lt.userid, lt.lessonid, lt.starttime";
+            $query = "SELECT lsl.id, lsl.userid, lsl.courseid, lsl.timecreated, lsl.ip
+                FROM mdl_logstore_standard_log lsl
+                INNER JOIN mdl_user u ON lsl.userid = u.id
+                WHERE (lsl.courseid IS NOT NULL AND lsl.courseid != 0)
+                    AND u.username LIKE '$userFilter%'
+                ORDER BY lsl.timecreated";
         }
 
         return [
@@ -47,22 +46,26 @@ class UsersLearnPathsLessonTimerTask extends BaseTask
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritDoc
      */
     public function getTransformConfiguration()
     {
         return [
             'class' => BaseTransformer::class,
             'map' => [
-                'parent_item_id' => [
-                    'class' => LoadedCourseModuleLessonLookup::class,
-                    'properties' => ['lessonid'],
-                ],
                 'user_id' => [
                     'class' => LoadedUserLookup::class,
                     'properties' => ['userid'],
                 ],
-                'start_time' => 'starttime',
+                'c_id' => [
+                    'class' => LoadedCourseLookup::class,
+                    'properties' => ['courseid'],
+                ],
+                'login_course_date' => [
+                    'class' => DateTimeObject::class,
+                    'properties' => ['timecreated'],
+                ],
+                'ip' => 'ip',
                 'session_id' => [
                     'class' => LoadedUserSessionLookup::class,
                     'properties' => ['userid'],
@@ -72,12 +75,12 @@ class UsersLearnPathsLessonTimerTask extends BaseTask
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritDoc
      */
     public function getLoadConfiguration()
     {
         return [
-            'class' => UserLearnPathLessonTimerLoader::class,
+            'class' => TrackCourseAccessLoader::class,
         ];
     }
 }

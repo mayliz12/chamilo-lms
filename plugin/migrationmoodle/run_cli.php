@@ -1,6 +1,7 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+use Chamilo\PluginBundle\MigrationMoodle\Script\BaseScript;
 use Chamilo\PluginBundle\MigrationMoodle\Task\BaseTask;
 
 $cidReset = true;
@@ -18,11 +19,6 @@ if (PHP_SAPI !== 'cli') {
 $outputBuffering = false;
 
 $plugin = MigrationMoodlePlugin::create();
-
-//if ('true' != $plugin->get('active')) {
-//    echo 'Plugin not active.'.PHP_EOL;
-//    exit;
-//}
 
 $taskNames = [
     'course_categories',
@@ -75,25 +71,49 @@ $taskNames = [
     'user_question_attempts_gapselect',
     'user_question_attempts_truefalse',
     'users_scorms_view',
-    'users_scorms_progress',
+    'track_course_access',
 ];
 
 foreach ($taskNames as $i => $taskName) {
     $taskClass = api_underscore_to_camel_case($taskName).'Task';
     $taskClass = 'Chamilo\\PluginBundle\\MigrationMoodle\\Task\\'.$taskClass;
 
-    echo PHP_EOL.($i + 1).': ';
+    echo PHP_EOL.'['.date(DateTime::ATOM).'] '.($i + 1).': ';
 
     if ($plugin->isTaskDone($taskName)) {
-        echo "$taskClass already done.".PHP_EOL;
+        echo "Already done \"$taskClass\"".PHP_EOL;
         continue;
     }
 
-    echo "Executing $taskClass.".PHP_EOL;
+    echo "Executing \"$taskClass.\"".PHP_EOL;
 
     /** @var BaseTask $task */
     $task = new $taskClass();
     $task->execute();
 
-    echo "$taskClass end.".PHP_EOL;
+    echo '['.date(DateTime::ATOM)."] End \"$taskClass\"".PHP_EOL;
+}
+
+$scriptNames = [
+    'user_learn_paths_progress',
+];
+
+foreach ($scriptNames as $i => $scriptName) {
+    $scriptClass = api_underscore_to_camel_case($scriptName).'Script';
+    $scriptClass = 'Chamilo\\PluginBundle\\MigrationMoodle\\Script\\'.$scriptClass;
+
+    echo PHP_EOL.'['.date(DateTime::ATOM).'] '.($i + 1).': ';
+
+    if ($plugin->isTaskDone($scriptName)) {
+        echo "Already done \"$scriptClass\"".PHP_EOL;
+        continue;
+    }
+
+    echo "Executing \"$scriptClass.\"".PHP_EOL;
+
+    /** @var BaseScript $script */
+    $script = new $scriptClass();
+    $script->run();
+
+    echo '['.date(DateTime::ATOM)."] End \"$scriptClass\"".PHP_EOL;
 }

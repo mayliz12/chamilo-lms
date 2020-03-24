@@ -20,18 +20,16 @@ class CourseFilesLoader implements LoaderInterface
     /**
      * Load the data and return the ID inserted.
      *
+     * @throws \Exception
+     *
      * @return int
      */
     public function load(array $incomingData)
     {
-        $userId = api_get_user_id();
+        $userId = 1;
         $courseInfo = api_get_course_info_by_id($incomingData['course']);
 
-        try {
-            $filePath = $this->findFilePath($incomingData['contenthash']);
-        } catch (\Exception $e) {
-            return 0;
-        }
+        $filePath = $this->findFilePath($incomingData['contenthash']);
 
         $file = [
             'file' => [
