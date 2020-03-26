@@ -1,0 +1,374 @@
+/*!
+ * Chamilo LMS stylesheet - Default v.2.0
+ * Homepage: https://chamilo.org
+ * Author: Alex Aragón <alex.aragon@beeznest.com>
+ * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
+ * Based on Bootstrap v3
+*/
+
+body {
+  margin: 0;
+}
+body > main > .container {
+  padding: 0 15px 0;
+}
+body > main > .container-fluid {
+  margin-bottom: 5%;
+}
+a {
+  color: #3F51B5;
+  text-decoration: none;
+}
+a:hover,
+a:focus {
+  color: #2E75A3;
+  text-decoration: none;
+}
+a:focus {
+  outline: none;
+}
+.navbar .navbar-brand{
+  display: block;
+  padding: 0;
+}
+.navbar-nav{
+  margin-top: 1.22rem;
+}
+.navbar-nav.navbar-right{
+  margin: 0;
+}
+.navbar-nav > li{
+  margin-bottom: 0;
+  padding: 0.95rem 0;
+}
+.navbar-collapse{
+  overflow: hidden !important;
+}
+.navbar-default {
+  background: #ffffff;
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  border-bottom: 1px solid #54b4c0;
+}
+.navbar-default .navbar-nav > li > a:focus,
+.navbar-default .navbar-nav > li > a:hover {
+  color: #FFFFFF;
+  background-color:#54b4c0;
+}
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a:hover,
+.navbar-default .navbar-nav > .active > a:focus{
+  color: #FFFFFF;
+  background-color:#206ab1;
+}
+.navbar-default .navbar-nav > li > a{
+  color: #206ab1;
+  padding: 0.5rem 2rem;
+  text-transform: uppercase;
+  font-size: 14px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+.navbar-default .navbar-nav > .open > a,
+.navbar-default .navbar-nav > .open > a:hover,
+.navbar-default .navbar-nav > .open > a:focus{
+  background: #206ab1;
+  color: #ffffff;
+}
+.navbar-nav > li > .dropdown-menu{
+  min-width: 100%;
+  margin-top: 2px;
+  border-radius: 4px;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+}
+.navbar-default .navbar-nav > .open > .dropdown-menu{
+  padding: 3px 4px;
+}
+.navbar-default .navbar-nav > .open > .dropdown-menu > li > a{
+  padding: 6px 9px;
+}
+.nav > li > a:hover, .nav > li > a:focus{
+   background-color: transparent;
+}
+.navbar-form .form-control{
+  height: 25px;
+  padding: 6px;
+}
+.navbar-default .navbar-brand {
+  color:white;
+}
+.navbar-default .navbar-collapse, .navbar-default .navbar-form{
+  border-color: #2C5B8E;
+}
+
+.navbar-default .navbar-toggle{
+  border-color: #274577;
+  background: #274577;
+}
+.navbar-default .navbar-toggle .icon-bar{
+  background-color: #ffffff;
+}
+.navbar-default .navbar-toggle:focus, .navbar-default .navbar-toggle:hover{
+  background-color: #2C5B8E;
+}
+.badge-warning{
+  background-color: #FD6600;
+}
+.breadcrumb{
+  padding: 8px 15px;
+  margin-bottom: 21px;
+  list-style: outside none none;
+  background-color: #ECF0F1;
+}
+.breadcrumb > .active{
+  color: #95a5a6;
+}
+.panel-default{
+  border-color: #ECF0F1;
+}
+/* Jquery UI */
+.ui-accordion .ui-accordion-icons{
+  padding-left: 0.2em;
+}
+/* End Jquery UI */
+.footer{
+  background-color: #54b4c0;
+  color: #FFFFFF;
+}
+.footer a{
+  color: #183856
+}
+.footer a:hover{
+  color: #183856;
+}
+.left-sidebar{
+  z-index: 9999;
+  width: 200px;
+  position: absolute;
+}
+.panel-default .panel-heading {
+  color: #333;
+  background-color: #f0f8ff;
+  border-color: #f0f8ff;
+}
+.alert-info {
+  color: #31708f;
+  background-color: #ebf8ff;
+  border-color: #bce8f1;
+}
+.right-content{
+  margin-left: 205px;
+  transition: all 0.3s;
+}
+.sidebar .list-group-item{
+  margin-left: 0;
+}
+.sidebar .panel .panel-title{
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: bold;
+  color: #333273;
+}
+.panel-collapse .list-group{
+  list-style: none;
+}
+.alert-user .title-alert{
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #673AB7;
+}
+.alert-user .img-alert{
+  float: left;
+  margin-right: 1rem;
+}
+.page-header{
+  border-bottom: 1px solid #03A9F4;
+}
+.page-header h4{
+  color: #333273;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+#carousel-announcement .carousel-indicators .active {
+  background: #3F51B5;
+  border: none;
+}
+#carousel-announcement .carousel-indicators li{
+  border: none;
+  background-color: #FFC107;
+}
+.beneficios h2.text-center{
+  text-transform: uppercase;
+  font-size: 20px;
+  color: #3F51B5;
+  font-weight: bold;
+}
+.beneficios h3.text-center {
+  font-size: 16px;
+  text-align: center;
+  color: #3F51B5;
+  margin-bottom: 5rem;
+}
+.beneficios .text-center .img-responsive {
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid #2196F3;
+  border-radius: 50%;
+  width: 124px;
+}
+.section-notifications {
+  position: absolute;
+  right: 0;
+  top: 7%;
+  border: 1px solid #88bfc5;
+  border-radius: 20px;
+  background: #effdff;
+}
+.grid-courses .items .category {
+  top:0;
+}
+.grid-courses .items .cribbon{
+  top: 32px;
+}
+.panel .session.panel-body{
+  background-color: #ecf4f5;
+}
+.classic-courses .panel-default:hover{
+  background-color: #fffef4;
+}
+body.slider{
+  background-color: #ffffff;
+}
+
+.slider .title-slider{
+  background: url('https://aulavirtual.playschool.edu.pe/web/css/themes/playschool/images/bg.png') repeat-x #f9f9f9;
+  padding: 0;
+  color: #ff3d05;
+  font-weight: bold;
+  font-size: 2.5rem;
+  border-bottom: 2px solid #ff3d05;
+}
+.slider .content{
+  padding: 1rem;
+}
+.slider h1,
+.slider h2,
+.slider h3,
+.slider h4,
+.slider h5{
+  margin-bottom: 2rem;
+}
+.slider .footer{
+  width: 100%;
+}
+.slider .footer .sub-footer{
+  background-color: #3f4194;
+  padding: 1rem;
+  color: #ffffff;
+  font-size: 1rem;
+}
+.slider .container {
+  padding: 0 15px;
+}
+
+.slider .container {
+  width: auto;
+  padding: 0 15px;
+}
+
+.slider .footer {
+  background-color: #3f4194;
+}
+@media (min-width: 768px) and (max-width: 979px) {
+  .slider .title-slider{
+    background-size: 90%;
+  }
+}
+
+@media (max-width: 767px) {
+  .slider img{
+    width: 100px;
+  }
+  .slider .title-slider{
+    background-size: 90%;
+  }
+  .slider h1,
+  .slider h2,
+  .slider h3,
+  .slider h4,
+  .slider h5{
+    font-size: 24px;
+    margin-bottom: 1rem;
+  }
+}
+@media (max-width: 480px) {
+  .left-sidebar {
+    width: 100%;
+    position: inherit;
+  }
+  .right-content {
+    margin-left: 0;
+    transition: all 0.3s;
+    width: 100%;
+  }
+  .section-notifications{
+    top: 20%;
+    z-index: 99;
+  }
+  .navbar-nav > li {
+    margin-bottom: 0;
+    padding: 0.5rem;
+  }
+  .navbar-default
+  .navbar-collapse{
+    border-color: #ffffff;
+    background: #54b4c0;
+  }
+  .navbar{
+    min-height: 75px;
+    margin-bottom: 10px;
+  }
+  .navbar-brand {
+    float: left;
+    height: 75px;
+  }
+  .section-notifications ul li.user-online a {
+    padding: 10px;
+  }
+  .classic-courses .thumbnail{
+    border: none;
+  }
+  .classic-courses .course-items-title{
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    padding: 0;
+  }
+  .sidebar .list-group-item{
+    padding: 8px 5px;
+  }
+  .sessions-items .courses .thumbnail{
+    border: none;
+    padding: 0;
+    margin-bottom: 10px;
+    background: transparent;
+  }
+  .sessions-items .courses h4{
+    font-size: 14px;
+    font-weight: bold;
+  }
+  .slider img{
+    width: 100px;
+  }
+  .slider h1,
+  .slider h2,
+  .slider h3,
+  .slider h4,
+  .slider h5{
+    font-size: 24px;
+    margin-bottom: 1rem;
+  }
+}
