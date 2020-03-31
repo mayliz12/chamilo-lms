@@ -69,22 +69,22 @@
                                     </li>
                                 {% endif %}
 
-                                {% if pending_survey_url %}
+                                {#{% if pending_survey_url %}
                                     <li class="user-body">
                                         <a href="{{ pending_survey_url }}">
                                             <em class="fa fa-pie-chart"></em> {{ 'PendingSurveys'|get_lang }}
                                         </a>
                                     </li>
-                                {% endif %}
+                                {% endif %}#}
 
-                                {% if certificate_url %}
+                                {#{% if certificate_url %}
                                     <li class="user-body">
                                         <a title="{{ "MyCertificates"|get_lang }}" href="{{ certificate_url }}">
                                             <em class="fa fa-graduation-cap"
                                                 aria-hidden="true"></em> {{ "MyCertificates"|get_lang }}
                                         </a>
                                     </li>
-                                {% endif %}
+                                {% endif %}#}
 
                                 <li class="user-body">
                                     <a id="logout_button" title="{{ "Logout"|get_lang }}" href="{{ logout_link }}">
