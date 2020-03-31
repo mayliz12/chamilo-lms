@@ -43,7 +43,7 @@ $rootWeb = api_get_path('WEB_PATH');
     <div class="container">
         <div class="logo">
             <a href="<?php echo $rootWeb; ?>">
-                <img src="<?php echo $rootWeb; ?>custompages/assets/img/logo.svg" class="logo" width="300px"/>
+                <img src="<?php echo $rootWeb; ?>custompages/assets/img/logo.png" class="logo" width="300px"/>
             </a>
         </div>
         <div class="panel panel-default form-lost-password">
