@@ -4,11 +4,11 @@
 namespace Chamilo\PluginBundle\MigrationMoodle\Script;
 
 /**
- * Class UserLearnPathsProgressScript.
+ * Class UserScormsProgressScript.
  *
  * @package Chamilo\PluginBundle\MigrationMoodle\Script
  */
-class UserLearnPathsProgressScript extends BaseScript
+class UserScormsProgressScript extends BaseScript
 {
     public function process()
     {
@@ -26,7 +26,11 @@ class UserLearnPathsProgressScript extends BaseScript
                 continue;
             }
 
-            $progress = (int) ($completedItems / $itemsInLp[$lpId] * 100);
+            if ($completedItems > $itemsInLp[$lpId]) {
+                $progress = 100;
+            } else {
+                $progress = (int) ($completedItems / $itemsInLp[$lpId] * 100);
+            }
 
             \Database::query(
                 "UPDATE c_lp_view
@@ -53,7 +57,7 @@ class UserLearnPathsProgressScript extends BaseScript
             "SELECT lpi.lp_id, COUNT(lpi.iid) AS c_lpi
                 FROM $tblItem lpi
                 INNER JOIN $tblLp lp ON lpi.lp_id = lp.iid
-                WHERE lpi.item_type != 'dir' AND lp.lp_type = 1
+                WHERE lpi.item_type = 'sco' AND lp.lp_type = 2
                 GROUP BY lpi.lp_id"
         );
 
@@ -78,14 +82,12 @@ class UserLearnPathsProgressScript extends BaseScript
             "SELECT lpv.iid, lpv.lp_id, lpv.user_id, lpv.c_id
                 FROM $tblLpView lpv
                 INNER JOIN $tblLp lp ON lpv.lp_id = lp.iid
-                INNER JOIN plugin_migrationmoodle_item pmi ON pmi.loaded_id = lpv.user_id
-                INNER JOIN plugin_migrationmoodle_task pmt ON pmi.task_id = pmt.id
-                WHERE lp.lp_type = 1 AND pmt.name = 'users_task'"
+                WHERE lp.lp_type = 2"
         );
 
         while ($row = \Database::fetch_assoc($result)) {
             if (!$this->isLoadedUser($row['user_id']) ||
-                !$this->isMigratedLearningPath($row['lp_id'])
+                !$this->isMigratedScorm($row['lp_id'])
             ) {
                 continue;
             }
@@ -93,8 +95,6 @@ class UserLearnPathsProgressScript extends BaseScript
             yield $row;
         }
     }
-
-
 
     /**
      * @param int $userId
@@ -120,15 +120,19 @@ class UserLearnPathsProgressScript extends BaseScript
                 AND lpv.user_id = $userId
                 AND lp.iid = $lpId
                 AND lp.c_id = $cId
-                AND lp.lp_type = 1
-            GROUP BY lpiv.lp_view_id");
+                AND lp.lp_type = 2
+            GROUP BY lpiv.lp_view_id, lpiv.lp_item_id");
 
-        $row = \Database::fetch_assoc($result);
-
-        if (empty($row) || empty($row['c_lpiv'])) {
+        if (\Database::num_rows($result) == 0) {
             return 0;
         }
 
-        return $row['c_lpiv'];
+        $count = 0;
+
+        while ($row = \Database::fetch_assoc($result)) {
+            $count += (int) $row['c_lpiv'];
+        }
+
+        return $count;
     }
 }

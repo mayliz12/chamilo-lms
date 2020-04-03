@@ -5,6 +5,7 @@ use Chamilo\CoreBundle\Entity\SettingsCurrent;
 use Chamilo\CourseBundle\Entity\CItemProperty;
 use Chamilo\UserBundle\Entity\User;
 use ChamiloSession as Session;
+use PHPMailer\PHPMailer\PHPMailer as PHPMailer;
 use Symfony\Component\Finder\Finder;
 
 /**
@@ -8654,6 +8655,47 @@ function api_get_configuration_value($variable)
 }
 
 /**
+ * Retreives and returns a value in a hierarchical configuration array
+ * api_get_configuration_sub_value('a/b/c') returns api_get_configuration_value('a')['b']['c'].
+ *
+ * @param string $path      the successive array keys, seperated by the separator
+ * @param mixed  $default   value to be returned if not found, null by default
+ * @param string $separator '/' by default
+ * @param array  $array     the active configuration array by default
+ *
+ * @return mixed the found value or $default
+ */
+function api_get_configuration_sub_value($path, $default = null, $separator = '/', $array = null)
+{
+    $pos = strpos($path, $separator);
+    if (false === $pos) {
+        if (is_null($array)) {
+            return api_get_configuration_value($path);
+        }
+        if (is_array($array) && array_key_exists($path, $array)) {
+            return $array[$path];
+        }
+
+        return $default;
+    }
+    $key = substr($path, 0, $pos);
+    if (is_null($array)) {
+        $newArray = api_get_configuration_value($key);
+    } elseif (is_array($array) && array_key_exists($key, $array)) {
+        $newArray = $array[$key];
+    } else {
+        return $default;
+    }
+    if (is_array($newArray)) {
+        $newPath = substr($path, $pos + 1);
+
+        return api_get_configuration_sub_value($newPath, $default, $separator, $newArray);
+    }
+
+    return $default;
+}
+
+/**
  * Returns supported image extensions in the portal.
  *
  * @param bool $supportVectors Whether vector images should also be accepted or not
@@ -8875,7 +8917,7 @@ function api_create_protected_dir($name, $parentDirectory)
  *
  * @return int true if mail was sent
  *
- * @see             class.phpmailer.php
+ * @see             PHPMailer.php
  */
 function api_mail_html(
     $recipient_name,
@@ -8921,7 +8963,7 @@ function api_mail_html(
     );
 
     if (!empty($sendErrorTo) && PHPMailer::ValidateAddress($sendErrorTo)) {
-        $mail->AddCustomHeader('Errors-To: '.$sendErrorTo);
+        $mail->AddCustomHeader('Errors-To', $sendErrorTo);
     }
 
     unset($extra_headers['reply_to']);
@@ -9022,14 +9064,14 @@ function api_mail_html(
                     $mail->Encoding = $value;
                     break;
                 case 'charset':
-                    $mail->Charset = $value;
+                    $mail->CharSet = $value;
                     break;
                 case 'contenttype':
                 case 'content-type':
                     $mail->ContentType = $value;
                     break;
                 default:
-                    $mail->AddCustomHeader($key.':'.$value);
+                    $mail->AddCustomHeader($key, $value);
                     break;
             }
         }
@@ -9041,6 +9083,19 @@ function api_mail_html(
 
     // WordWrap the html body (phpMailer only fixes AltBody) FS#2988
     $mail->Body = $mail->WrapText($mail->Body, $mail->WordWrap);
+
+    if (!empty($platform_email['DKIM']) &&
+        !empty($platform_email['DKIM_SELECTOR']) &&
+        !empty($platform_email['DKIM_DOMAIN']) &&
+        (!empty($platform_email['DKIM_PRIVATE_KEY_STRING']) || !empty($platform_email['DKIM_PRIVATE_KEY']))) {
+        $mail->DKIM_selector = $platform_email['DKIM_SELECTOR'];
+        $mail->DKIM_domain = $platform_email['DKIM_DOMAIN'];
+        if (!empty($platform_email['SMTP_UNIQUE_SENDER'])) {
+            $mail->DKIM_identity = $platform_email['SMTP_FROM_EMAIL'];
+        }
+        $mail->DKIM_private_string = $platform_email['DKIM_PRIVATE_KEY_STRING'];
+        $mail->DKIM_private = $platform_email['DKIM_PRIVATE_KEY'];
+    }
 
     // Send the mail message.
     if (!$mail->Send()) {
