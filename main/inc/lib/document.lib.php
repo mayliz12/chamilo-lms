@@ -592,7 +592,7 @@ class DocumentManager
         }
 
         $sql = "SELECT
-                    docs.id,
+                    docs.iid as id,
                     docs.filetype,
                     docs.path,
                     docs.title,
@@ -607,7 +607,7 @@ class DocumentManager
                 FROM $tblItemProperty AS last
                 INNER JOIN $tblDocument AS docs
                 ON (
-                    docs.id = last.ref AND
+                    docs.iid = last.ref AND
                     docs.c_id = last.c_id
                 )
                 WHERE
@@ -715,9 +715,9 @@ class DocumentManager
             }
 
             return $finalDocumentData;
-        } else {
-            return [];
         }
+
+        return [];
     }
 
     /**
@@ -780,11 +780,11 @@ class DocumentManager
             $condition_session .= self::getSessionFolderFilters($path, $session_id);
 
             if ($groupIid != 0) {
-                $sql = "SELECT DISTINCT docs.id, path
+                $sql = "SELECT DISTINCT docs.iid as id, path
                        FROM $TABLE_ITEMPROPERTY  AS last
                        INNER JOIN $TABLE_DOCUMENT  AS docs
                        ON (
-                            docs.id = last.ref AND
+                            docs.iid = last.ref AND
                             docs.c_id = last.c_id
                        )
                        WHERE
@@ -798,11 +798,11 @@ class DocumentManager
                             last.visibility <> 2
                             $condition_session ";
             } else {
-                $sql = "SELECT DISTINCT docs.id, path
+                $sql = "SELECT DISTINCT docs.iid as id, path
                         FROM $TABLE_ITEMPROPERTY  AS last
                         INNER JOIN $TABLE_DOCUMENT  AS docs
                         ON (
-                            docs.id = last.ref AND
+                            docs.iid = last.ref AND
                             docs.c_id = last.c_id
                         )
                         WHERE
@@ -861,11 +861,11 @@ class DocumentManager
             }
 
             //get visible folders
-            $sql = "SELECT DISTINCT docs.id, path
+            $sql = "SELECT DISTINCT docs.iid as id, path
                     FROM
                     $TABLE_ITEMPROPERTY AS last
                     INNER JOIN $TABLE_DOCUMENT AS docs
-                    ON (docs.id = last.ref AND last.c_id = docs.c_id)
+                    ON (docs.iid = last.ref AND last.c_id = docs.c_id)
                     WHERE
                         $fileType
                         last.tool = '".TOOL_DOCUMENT."' AND
@@ -888,10 +888,10 @@ class DocumentManager
             }
 
             //get invisible folders
-            $sql = "SELECT DISTINCT docs.id, path
+            $sql = "SELECT DISTINCT docs.iid as id, path
                     FROM $TABLE_ITEMPROPERTY AS last
                     INNER JOIN $TABLE_DOCUMENT AS docs
-                    ON (docs.id = last.ref AND last.c_id = docs.c_id)
+                    ON (docs.iid = last.ref AND last.c_id = docs.c_id)
                     WHERE
                         docs.filetype = 'folder' AND
                         last.tool = '".TOOL_DOCUMENT."' AND
@@ -903,10 +903,10 @@ class DocumentManager
             $invisibleFolders = [];
             while ($row = Database::fetch_array($result, 'ASSOC')) {
                 //get visible folders in the invisible ones -> they are invisible too
-                $sql = "SELECT DISTINCT docs.id, path
+                $sql = "SELECT DISTINCT docs.iid as id, path
                         FROM $TABLE_ITEMPROPERTY AS last
                         INNER JOIN $TABLE_DOCUMENT AS docs
-                        ON (docs.id = last.ref AND docs.c_id = last.c_id)
+                        ON (docs.iid = last.ref AND docs.c_id = last.c_id)
                         WHERE
                             docs.path LIKE '".Database::escape_string($row['path'].'/%')."' AND
                             docs.filetype = 'folder' AND
@@ -982,10 +982,10 @@ class DocumentManager
                 if (!empty($file)) {
                     $path = Database::escape_string($file);
                     // Check
-                    $sql = "SELECT td.id, readonly, tp.insert_user_id
+                    $sql = "SELECT td.iid as id, readonly, tp.insert_user_id
                             FROM $TABLE_DOCUMENT td
                             INNER JOIN $TABLE_PROPERTY tp
-                            ON (td.c_id = tp.c_id AND tp.ref= td.id)
+                            ON (td.c_id = tp.c_id AND tp.ref= td.iid)
                             WHERE
                                 td.c_id = $course_id AND
                                 tp.c_id = $course_id AND
@@ -1021,7 +1021,7 @@ class DocumentManager
             $sql = "SELECT a.insert_user_id, b.readonly
                    FROM $TABLE_PROPERTY a
                    INNER JOIN $TABLE_DOCUMENT b
-                   ON (a.c_id = b.c_id AND a.ref= b.id)
+                   ON (a.c_id = b.c_id AND a.ref= b.iid)
                    WHERE
             			a.c_id = $course_id AND
                         b.c_id = $course_id AND
@@ -1367,7 +1367,7 @@ class DocumentManager
      *
      * @return int id of document / false if no doc found
      */
-    public static function get_document_id($courseInfo, $path, $sessionId = null)
+    public static function get_document_id($courseInfo, $path, $sessionId = null, $forceFileTypeFolder = false)
     {
         $table = Database::get_course_table(TABLE_DOCUMENT);
         $courseId = $courseInfo['real_id'];
@@ -1380,11 +1380,16 @@ class DocumentManager
 
         $path = Database::escape_string($path);
         if (!empty($courseId) && !empty($path)) {
+            $folderCondition = '';
+            if ($forceFileTypeFolder) {
+                $folderCondition = ' AND filetype = "folder" ';
+            }
             $sql = "SELECT id FROM $table
                     WHERE
                         c_id = $courseId AND
                         path LIKE BINARY '$path' AND
                         session_id = $sessionId
+                        $folderCondition
                     LIMIT 1";
 
             $result = Database::query($sql);
@@ -1459,10 +1464,10 @@ class DocumentManager
             if (dirname($row['path']) == '.') {
                 $row['parent_id'] = '0';
             } else {
-                $row['parent_id'] = self::get_document_id($course_info, dirname($row['path']), $session_id);
+                $row['parent_id'] = self::get_document_id($course_info, dirname($row['path']), $session_id, true);
                 if (empty($row['parent_id'])) {
                     // Try one more with session id = 0
-                    $row['parent_id'] = self::get_document_id($course_info, dirname($row['path']), 0);
+                    $row['parent_id'] = self::get_document_id($course_info, dirname($row['path']), 0, true);
                 }
             }
             $parents = [];
@@ -1639,7 +1644,7 @@ class DocumentManager
         $sql = "SELECT visibility
                 FROM $docTable d
                 INNER JOIN $propTable ip
-                ON (d.id = ip.ref AND d.c_id = ip.c_id)
+                ON (d.iid = ip.ref AND d.c_id = ip.c_id)
         		WHERE
         		    d.c_id  = $course_id AND
         		    ip.c_id = $course_id AND
@@ -2905,12 +2910,12 @@ class DocumentManager
         $course_data = api_get_course_info($courseCode);
         $document_data = self::get_document_data_by_id($document_id, $courseCode);
         $file_path = api_get_path(SYS_COURSE_PATH).$course_data['path'].'/document'.$document_data['path'];
-        if ($orientation == 'landscape') {
+
+        $pageFormat = 'A4';
+        $pdfOrientation = 'P';
+        if ($orientation === 'landscape') {
             $pageFormat = 'A4-L';
             $pdfOrientation = 'L';
-        } else {
-            $pageFormat = 'A4';
-            $pdfOrientation = 'P';
         }
         $pdf = new PDF(
             $pageFormat,
@@ -2921,10 +2926,7 @@ class DocumentManager
         if (api_get_configuration_value('use_alternative_document_pdf_footer')) {
             $view = new Template('', false, false, false, true, false, false);
             $template = $view->get_template('export/alt_pdf_footer.tpl');
-
-            $pdf->set_custom_footer([
-                'html' => $view->fetch($template),
-            ]);
+            $pdf->set_custom_footer(['html' => $view->fetch($template)]);
         }
 
         $pdf->html_to_pdf(
@@ -3182,7 +3184,7 @@ class DocumentManager
         $sql = "SELECT SUM(size)
                 FROM $TABLE_ITEMPROPERTY AS props
                 INNER JOIN $TABLE_DOCUMENT AS docs
-                ON (docs.id = props.ref AND props.c_id = docs.c_id)
+                ON (docs.iid = props.ref AND props.c_id = docs.c_id)
                 WHERE
                     props.c_id = $course_id AND
                     docs.c_id = $course_id AND
@@ -3417,7 +3419,7 @@ class DocumentManager
 
                 $folderId = (int) $folderId;
                 $folderCondition = " AND
-                    docs.id <> $folderId AND
+                    docs.iid <> $folderId AND
                     docs.path LIKE '".$cleanedPath."/%'
                     $notLikeCondition
                 ";
@@ -3431,10 +3433,10 @@ class DocumentManager
             $levelCondition = " AND docs.path NOT LIKE'/%/%'";
         }
 
-        $sql = "SELECT DISTINCT last.visibility, docs.*
+        $sql = "SELECT DISTINCT last.visibility, docs.* 
                 FROM $tbl_item_prop AS last
                 INNER JOIN $tbl_doc AS docs
-                ON (docs.id = last.ref AND docs.c_id = last.c_id)
+                ON (docs.iid = last.ref AND docs.c_id = last.c_id)
                 WHERE
                     docs.path NOT LIKE '%_DELETED_%' AND
                     last.tool = '".TOOL_DOCUMENT."' $condition_session AND
@@ -3469,7 +3471,7 @@ class DocumentManager
         if (!empty($resources) && $user_in_course) {
             foreach ($resources as $resource) {
                 $is_visible = self::is_visible_by_id(
-                    $resource['id'],
+                    $resource['iid'],
                     $course_info,
                     $session_id,
                     api_get_user_id()
@@ -6190,12 +6192,12 @@ class DocumentManager
         $courseId = $courseInfo['real_id'];
 
         // get invisible folders
-        $sql = "SELECT DISTINCT d.id, path
+        $sql = "SELECT DISTINCT d.iid as id, path
                 FROM $itemPropertyTable i
                 INNER JOIN $documentTable d
                 ON (i.c_id = d.c_id)
                 WHERE
-                    d.id = i.ref AND
+                    d.iid = i.ref AND
                     i.tool = '".TOOL_DOCUMENT."'
                     $conditionSession AND
                     i.c_id = $courseId AND
@@ -6347,7 +6349,7 @@ class DocumentManager
                 SELECT props.ref, size
                 FROM $table_itemproperty AS props
                 INNER JOIN $table_document AS docs
-                ON (docs.id = props.ref AND docs.c_id = props.c_id)
+                ON (docs.iid = props.ref AND docs.c_id = props.c_id)
                 WHERE
                     docs.c_id = $course_id AND
                     docs.path LIKE '$path/%' AND
@@ -6563,7 +6565,7 @@ class DocumentManager
                 FROM $tblItemProperty AS last
                 INNER JOIN $tblDocument AS docs
                 ON (
-                    docs.id = last.ref AND
+                    docs.iid = last.ref AND
                     docs.c_id = last.c_id AND
                     docs.filetype <> 'folder'
                 )

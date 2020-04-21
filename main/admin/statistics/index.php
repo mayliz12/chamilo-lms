@@ -15,6 +15,7 @@ $interbreadcrumb[] = ['url' => '../index.php', 'name' => get_lang('PlatformAdmin
 $report = isset($_REQUEST['report']) ? $_REQUEST['report'] : '';
 $sessionDuration = isset($_GET['session_duration']) ? (int) $_GET['session_duration'] : '';
 $validated = false;
+$sessionStatusAllowed = api_get_configuration_value('allow_session_status');
 
 if (
 in_array(
@@ -199,8 +200,12 @@ in_array(
                 true,
                 ['format' => 'YYYY-MM-DD', 'timePicker' => 'false', 'validate_format' => 'Y-m-d']
             );
-            $options = SessionManager::getStatusList();
-            $form->addSelect('status_id', get_lang('SessionStatus'), $options, ['placeholder' => get_lang('All')]);
+
+            if ($sessionStatusAllowed) {
+                $options = SessionManager::getStatusList();
+                $form->addSelect('status_id', get_lang('SessionStatus'), $options, ['placeholder' => get_lang('All')]);
+            }
+
             $form->addHidden('report', 'session_by_date');
             $form->addButtonSearch(get_lang('Search'));
 
@@ -267,12 +272,15 @@ in_array(
                     $reportOptions2,
                     'canvas2'
                 );
-                $htmlHeadXtra[] = Statistics::getJSChartTemplate(
-                    $url3,
-                    $reportType,
-                    $reportOptions3,
-                    'canvas3'
-                );
+
+                if ($sessionStatusAllowed) {
+                    $htmlHeadXtra[] = Statistics::getJSChartTemplate(
+                        $url3,
+                        $reportType,
+                        $reportOptions3,
+                        'canvas3'
+                    );
+                }
 
                 $reportOptions = '
                     legend: {
@@ -361,7 +369,6 @@ $tools = [
 
 $course_categories = Statistics::getCourseCategories();
 $content = '';
-$sessionStatusAllowed = api_get_configuration_value('allow_session_status');
 
 switch ($report) {
     case 'session_by_date':
@@ -1262,24 +1269,23 @@ switch ($report) {
                 while ($row = Database::fetch_array($query)) {
                     $usersFound++;
                     if (!empty($row['value'])) {
-                        $date1 = new DateTime($row['value']);
-                        $interval = $now->diff($date1);
-                        $years = (int) $interval->y;
+                        $validDate = DateTime::createFromFormat('Y-m-d', $row['value']);
+                        $validDate = $validDate && $validDate->format('Y-m-d') === $row['value'];
+                        if ($validDate) {
+                            $date1 = new DateTime($row['value']);
+                            $interval = $now->diff($date1);
+                            $years = (int) $interval->y;
 
-                        if ($years >= 16 && $years <= 17) {
-                            $all['16-17']++;
+                            if ($years >= 16 && $years <= 17) {
+                                $all['16-17']++;
+                            }
+                            if ($years >= 18 && $years <= 25) {
+                                $all['18-25']++;
+                            }
+                            if ($years >= 26 && $years <= 30) {
+                                $all['26-30']++;
+                            }
                         }
-                        if ($years >= 18 && $years <= 25) {
-                            $all['18-25']++;
-                        }
-                        if ($years >= 26 && $years <= 30) {
-                            $all['26-30']++;
-                        }
-                        /*if ($years >= 31) {
-                            $all[get_lang('N/A')] += 1;
-                        }*/
-                    } else {
-                        //$all[get_lang('N/A')] += 1;
                     }
                 }
 
@@ -1294,7 +1300,6 @@ switch ($report) {
             }
 
             $header = Display::page_subheader2(get_lang('TotalNumberOfStudents').': '.$studentCount);
-
             $content = $header.$extraTables.$graph.$content;
         }
 
@@ -1329,7 +1334,7 @@ switch ($report) {
         $content .= Statistics::printStats(get_lang('Students'), $students);
         break;
     case 'recentlogins':
-        $content .= '<h2>'.sprintf(get_lang('LastXDays'), '15').'</h2>';
+        $content .= '<h2>'.sprintf(get_lang('LastXDays'), '31').'</h2>';
         $form = new FormValidator(
             'session_time',
             'get',

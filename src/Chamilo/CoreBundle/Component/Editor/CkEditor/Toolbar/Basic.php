@@ -22,7 +22,7 @@ class Basic extends Toolbar
         'adobeair',
         'ajax',
         'audio',
-        'image2_chamilo',
+        'image2_chamilo', // Replace for 'image' if you want to user the Mapping plugin.
         'bidi',
         'colorbutton',
         'colordialog',
@@ -115,7 +115,6 @@ class Basic extends Toolbar
 
         if (api_get_setting('enabled_wiris') == 'true') {
             // New version of wiris needs this plugins before it's loaded
-            $plugins[] = 'mapping';
             $plugins[] = 'widgetselection';
             $plugins[] = 'panelbutton';
 
@@ -123,6 +122,7 @@ class Basic extends Toolbar
             $plugins[] = 'ckeditor_wiris';
         }
 
+        // Mapping plugin requires Image plugin. But Image2 plugin is activated by default
         if (api_get_setting('enabled_imgmap') == 'true') {
             $plugins[] = 'mapping';
         }
@@ -244,7 +244,7 @@ class Basic extends Toolbar
             ['BulletedList', 'NumberedList', 'HorizontalRule'],
             ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
             ['Styles', 'Format', 'Font', 'FontSize', 'Bold', 'Italic', 'Underline', 'TextColor', 'BGColor'],
-            api_get_setting('enabled_wiris') == 'true' ? ['ckeditor_wiris_formulaEditor', 'ckeditor_wiris_CAS'] : [''],
+            api_get_setting('enabled_wiris') == 'true' ? ['ckeditor_wiris_formulaEditor', 'ckeditor_wiris_formulaEditorChemistry'] : [''],
             ['Toolbarswitch', 'Source'],
         ];
     }
@@ -283,7 +283,7 @@ class Basic extends Toolbar
             [api_get_setting('allow_spellcheck') == 'true' ? 'Scayt' : ''],
             ['Styles', 'Format', 'Font', 'FontSize'],
             ['PageBreak', 'ShowBlocks'],
-            api_get_setting('enabled_wiris') == 'true' ? ['ckeditor_wiris_formulaEditor', 'ckeditor_wiris_CAS'] : [''],
+            api_get_setting('enabled_wiris') == 'true' ? ['ckeditor_wiris_formulaEditor', 'ckeditor_wiris_formulaEditorChemistry'] : [''],
             ['Toolbarswitch', 'Source'],
         ];
     }

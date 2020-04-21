@@ -909,16 +909,17 @@ function get_user_data($from, $number_of_items, $column, $direction)
                             $user_id,
                             $extraField['id']
                         );
-
-                        $optionList = $extraFieldOption->get_field_option_by_field_and_option(
-                            $extraField['id'],
-                            $data['value']
-                        );
-                        if (!empty($optionList)) {
-                            $options = implode(', ', array_column($optionList, 'display_text'));
-                            $temp[] = $options;
-                        } else {
-                            $temp[] = $data['value'];
+                        if (isset($data['value'])) {
+                            $optionList = $extraFieldOption->get_field_option_by_field_and_option(
+                                $extraField['id'],
+                                $data['value']
+                            );
+                            if (!empty($optionList)) {
+                                $options = implode(', ', array_column($optionList, 'display_text'));
+                                $temp[] = $options;
+                            } else {
+                                $temp[] = $data['value'];
+                            }
                         }
                     }
                 }
@@ -1037,9 +1038,9 @@ function modify_filter($user_id, $row, $data)
             $isTutor = isset($data['is_tutor']) ? intval($data['is_tutor']) : 0;
             $isTutor = empty($isTutor) ? 1 : 0;
 
-            $text = get_lang('RemoveTutorStatus');
+            $text = get_lang('RemoveCourseAssistantStatus');
             if ($isTutor) {
-                $text = get_lang('SetTutor');
+                $text = get_lang('ConvertToCourseAssistant');
             }
 
             if ($isInvitee) {

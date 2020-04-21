@@ -1030,7 +1030,7 @@ VALUES (2, 13, 'session_courses_read_only_mode', 'Lock Course In Session', 1, 1,
 // Block student publication add documents BT#14986
 //$_configuration['block_student_publication_add_documents'] = false;
 
-// Block student publication score edition BT#14987
+// Block teacher to modify a work score edition BT#14987
 // $_configuration['block_student_publication_score_edition'] = false;
 
 // Enable system to manage e-mail templates in users registration forms
@@ -1424,6 +1424,58 @@ ALTER TABLE notification_event ADD COLUMN event_id INT NULL;
 
 // Course chat: Send message on button click only, if false then send on enter too.
 //$_configuration['course_chat_send_message_only_on_button'] = true;
+
+// Course catalog show extra fields (visible and filtered)
+//$_configuration['allow_course_extra_field_in_catalog'] = false;
+
+// Course catalog links behaviour.
+/*
+$_configuration['course_catalog_settings'] = [
+    'link_settings' => [
+        'info_url' => 'course_description_popup', // course description popup page
+        'title_url' => 'course_home', // Course home URL
+        'image_url' => 'course_about', // Course about URL
+    ],
+    'redirect_after_subscription' => 'course_home', // or 'course_catalog' to stay in the page
+    'extra_fields_in_search_form' => ['variable1', 'variable2'],
+    'extra_fields_in_course_block' => ['variable3', 'variable4'],
+];
+*/
+
+// Page "My Courses" shows specific course extra fields (CourseManager::getExtraFieldsToBePresented)
+/*$_configuration['My_course_course_extrafields_to_be_presented'] = [
+    'fields' => ['mots_cles', 'duree_en_min', 'format'],
+];*/
+
+// Disable fields to add an attachment when creating and announcement.
+//$_configuration['disable_announcement_attachment'] = false;
+
+// Disable sending emails.
+//$_configuration['disable_send_mail'] = false;
+
+// Page "Catalog" extra fields to be used as sorting criteria
+/*$_configuration['course_catalogue_order_by_extrafield'] = [
+    'fields' => ['duree_en_min'],
+];*/
+
+// CKEditor font names
+/*$_configuration['ck_editor_font_names'] = [
+    'names' => [
+        'Arial' => 'Arial, Helvetica, sans-serif',
+        'Comic Sans MS' => 'Comic Sans MS, cursive',
+        'Courier New' => 'Courier New, Courier, monospace',
+        'Georgia' => 'Georgia, serif',
+        'Lucida Sans Unicode' => 'Lucida Sans Unicode, Lucida Grande, sans-serif',
+        'Tahoma' => 'Tahoma, Geneva, sans-serif',
+        'Times New Roman' => 'Times New Roman, Times, serif',
+        'Trebuchet MS' => 'Trebuchet MS, Helvetica, sans-serif',
+        'Verdana' => 'Verdana, Geneva, sans-serif',
+    ]
+];*/
+
+/* Show download files button after finishing all LP. Example: ABC is the course code, and 1 and 100 are the doc id
+$_configuration['download_files_after_all_lp_finished'] = ['courses' => ['ABC' => [1, 100]]];
+*/
 
 // KEEP THIS AT THE END
 // -------- Custom DB changes

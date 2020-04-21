@@ -151,6 +151,7 @@ class UserManager
         $userManager = self::getManager();
         $user->setPlainPassword($password);
         $userManager->updateUser($user, true);
+        Event::addEvent(LOG_USER_PASSWORD_UPDATE, LOG_USER_ID, $userId);
     }
 
     /**
@@ -382,7 +383,7 @@ class UserManager
             Database::query($sql);
 
             if ($isAdmin) {
-                self::add_user_as_admin($user);
+                self::addUserAsAdmin($user);
             }
 
             if (api_get_multiple_access_url()) {
@@ -1438,9 +1439,11 @@ class UserManager
 
         if (!is_null($password)) {
             $user->setPlainPassword($password);
+            Event::addEvent(LOG_USER_PASSWORD_UPDATE, LOG_USER_ID, $user_id);
         }
 
         $userManager->updateUser($user, true);
+        Event::addEvent(LOG_USER_UPDATE, LOG_USER_ID, $user_id);
 
         if ($change_active == 1) {
             if ($active == 1) {
@@ -3040,7 +3043,9 @@ class UserManager
         return $extra_data;
     }
 
-    /** Get extra user data by field
+    /**
+     * Get extra user data by field.
+     *
      * @param int    user ID
      * @param string the internal variable name of the field
      *
@@ -5742,14 +5747,13 @@ class UserManager
         return $icon_link;
     }
 
-    public static function add_user_as_admin(User $user)
+    public static function addUserAsAdmin(User $user)
     {
-        $table_admin = Database::get_main_table(TABLE_MAIN_ADMIN);
         if ($user) {
             $userId = $user->getId();
-
             if (!self::is_admin($userId)) {
-                $sql = "INSERT INTO $table_admin SET user_id = $userId";
+                $table = Database::get_main_table(TABLE_MAIN_ADMIN);
+                $sql = "INSERT INTO $table SET user_id = $userId";
                 Database::query($sql);
             }
 
@@ -5758,16 +5762,15 @@ class UserManager
         }
     }
 
-    /**
-     * @param int $userId
-     */
-    public static function remove_user_admin($userId)
+    public static function removeUserAdmin(User $user)
     {
-        $table_admin = Database::get_main_table(TABLE_MAIN_ADMIN);
-        $userId = (int) $userId;
+        $userId = (int) $user->getId();
         if (self::is_admin($userId)) {
-            $sql = "DELETE FROM $table_admin WHERE user_id = $userId";
+            $table = Database::get_main_table(TABLE_MAIN_ADMIN);
+            $sql = "DELETE FROM $table WHERE user_id = $userId";
             Database::query($sql);
+            $user->removeRole('ROLE_SUPER_ADMIN');
+            self::getManager()->updateUser($user, true);
         }
     }
 

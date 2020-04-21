@@ -15,6 +15,8 @@ class CourseCategoriesLoader implements LoaderInterface
     /**
      * Load the data and return the ID inserted.
      *
+     * @throws \Exception
+     *
      * @return int
      */
     public function load(array $incomingData)
@@ -25,6 +27,10 @@ class CourseCategoriesLoader implements LoaderInterface
             'TRUE',
             $incomingData['parent_id']
         );
+
+        if (empty($id)) {
+            throw new \Exception("Course category ({$incomingData['code']}) not migrated. Maybe it already exists.");
+        }
 
         $tblUrlCategory = \Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE_CATEGORY);
         $accessUrlId = \MigrationMoodlePlugin::create()->getAccessUrlId();

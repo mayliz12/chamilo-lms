@@ -4,7 +4,6 @@
 use Chamilo\CoreBundle\Entity\Course;
 use Chamilo\CoreBundle\Entity\ExtraField as EntityExtraField;
 use Chamilo\CoreBundle\Entity\Session as SessionEntity;
-use Chamilo\CourseBundle\Entity\CLpCategory;
 use Chamilo\UserBundle\Entity\User;
 use ChamiloSession as Session;
 use CpChart\Cache as pCache;
@@ -1650,9 +1649,10 @@ class Tracking
      * Calculates the time spent on the platform by a user.
      *
      * @param int|array $userId
-     * @param string    $timeFilter type of time filter: 'last_week' or 'custom'
-     * @param string    $start_date start date date('Y-m-d H:i:s')
-     * @param string    $end_date   end date date('Y-m-d H:i:s')
+     * @param string    $timeFilter       type of time filter: 'last_week' or 'custom'
+     * @param string    $start_date       start date date('Y-m-d H:i:s')
+     * @param string    $end_date         end date date('Y-m-d H:i:s')
+     * @param bool      $returnAllRecords
      *
      * @return int
      */
@@ -1670,15 +1670,16 @@ class Tracking
             $userList = array_map('intval', $userId);
             $userCondition = " login_user_id IN ('".implode("','", $userList)."')";
         } else {
-            $userCondition = " login_user_id = ".intval($userId);
+            $userId = (int) $userId;
+            $userCondition = " login_user_id = $userId ";
         }
 
         $url_condition = null;
-	$tbl_url_rel_user = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
+        $tbl_url_rel_user = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
         $url_table = null;
         if (api_is_multiple_url_enabled()) {
             $access_url_id = api_get_current_access_url_id();
-            $url_table = ", ".$tbl_url_rel_user." as url_users";
+            $url_table = ", $tbl_url_rel_user as url_users";
             $url_condition = " AND u.login_user_id = url_users.user_id AND access_url_id='$access_url_id'";
         }
 
@@ -1698,6 +1699,17 @@ class Tracking
                 $newDate = new DateTime('-30 days', new DateTimeZone('UTC'));
                 $condition_time = " AND (login_date >= '{$newDate->format('Y-m-d H:i:s')}'";
                 $condition_time .= "AND logout_date <= '{$today->format('Y-m-d H:i:s')}') ";
+                break;
+            case 'wide':
+                if (!empty($start_date) && !empty($end_date)) {
+                    $start_date = Database::escape_string($start_date);
+                    $end_date = Database::escape_string($end_date);
+                    $condition_time = ' AND (
+                        (login_date >= "'.$start_date.'" AND login_date <= "'.$end_date.'") OR
+                        (logout_date >= "'.$start_date.'" AND logout_date <= "'.$end_date.'") OR
+                        (login_date <= "'.$start_date.'" AND logout_date >= "'.$end_date.'")
+                    ) ';
+                }
                 break;
             case 'custom':
                 if (!empty($start_date) && !empty($end_date)) {
@@ -3156,7 +3168,7 @@ class Tracking
      * @param int       $session_id  Session id (optional), if param $session_id is null(default)
      *                               it'll return results including sessions, 0 = session is not filtered
      *
-     * @return int Total time
+     * @return int Total time in seconds
      */
     public static function get_time_spent_in_lp(
         $student_id,
@@ -6881,7 +6893,6 @@ class Tracking
         $controller = new IndexManager(get_lang('MyCourses'));
         $data = $controller->returnCoursesAndSessions($userId);
         $courseList = $data['courses'];
-
         $result = [];
         if ($courseList) {
             //$counter = 1;
@@ -6892,91 +6903,54 @@ class Tracking
                     continue;
                 }
                 $courseCode = $courseInfo['code'];
+                $lpTimeList = self::getCalculateTime($userId, $courseId, $sessionId);
 
-                $time = self::get_time_spent_in_lp($userId, $courseCode, [], $sessionId);
-                $score = self::getAverageStudentScore($userId, $courseCode, [], $sessionId);
+                // total progress
+                $list = new LearnpathList(
+                    $userId,
+                     $courseInfo,
+                    0,
+                    'lp.publicatedOn ASC',
+                    true,
+                    null,
+                    true
+                );
+
+                $list = $list->get_flat_list();
+                $totalProgress = 0;
+                $totalTime = 0;
+                if (!empty($list)) {
+                    foreach ($list as $lp_id => $learnpath) {
+                        if (!$learnpath['lp_visibility']) {
+                            continue;
+                        }
+                        $lpProgress = self::get_avg_student_progress($userId, $courseCode, [$lp_id], $sessionId);
+                        $time = isset($lpTimeList[TOOL_LEARNPATH][$lp_id]) ? $lpTimeList[TOOL_LEARNPATH][$lp_id] : 0;
+                        if ($lpProgress == 100) {
+                            if (!empty($time)) {
+                                $timeInMinutes = $time / 60;
+                                $min = (int) learnpath::getAccumulateWorkTimePrerequisite($lp_id, $courseId);
+                                if ($timeInMinutes >= $min) {
+                                    $totalProgress++;
+                                }
+                            }
+                        }
+                        $totalTime += $time;
+                    }
+
+                    if (!empty($totalProgress)) {
+                        $totalProgress = (float) api_number_format($totalProgress / count($list) * 100, 2);
+                    }
+                }
+
                 $progress = self::get_avg_student_progress($userId, $courseCode, [], $sessionId);
 
                 $result[] = [
                     'module' => $courseInfo['name'],
                     'progress' => $progress,
-                    'qualification' => $score,
-                    'activeTime' => $time,
+                    'qualification' => $totalProgress,
+                    'activeTime' => $totalTime,
                 ];
-                /*
-                $categoriesTempList = learnpath::getCategories($courseId);
-                $categoryNone = new CLpCategory();
-                $categoryNone->setId(0);
-                $categoryNone->setName(get_lang('WithOutCategory'));
-                $categoryNone->setPosition(0);
-
-                $categories = array_merge([$categoryNone], $categoriesTempList);
-
-                foreach ($categories as $category) {
-                    $learnPathList = new LearnpathList(
-                        $userId,
-                        $courseInfo,
-                        $sessionId,
-                        null,
-                        false,
-                        $category->getId()
-                    );
-
-                    $flatLpList = $learnPathList->get_flat_list();
-
-                    if (empty($flatLpList)) {
-                        continue;
-                    }
-
-                    foreach ($flatLpList as $lpId => $lpDetails) {
-                        if ($lpDetails['lp_visibility'] == 0) {
-                            continue;
-                        }
-
-                        if (!learnpath::is_lp_visible_for_student(
-                            $lpId,
-                            $userId,
-                            $courseInfo,
-                            $sessionId
-                        )) {
-                            continue;
-                        }
-
-                        $timeLimits = false;
-
-                        // This is an old LP (from a migration 1.8.7) so we do nothing
-                        if (empty($lpDetails['created_on']) && empty($lpDetails['modified_on'])) {
-                            $timeLimits = false;
-                        }
-
-                        // Checking if expired_on is ON
-                        if (!empty($lpDetails['expired_on'])) {
-                            $timeLimits = true;
-                        }
-
-                        if ($timeLimits) {
-                            if (!empty($lpDetails['publicated_on']) && !empty($lpDetails['expired_on'])) {
-                                $startTime = api_strtotime($lpDetails['publicated_on'], 'UTC');
-                                $endTime = api_strtotime($lpDetails['expired_on'], 'UTC');
-                                $now = time();
-                                $isActiveTime = false;
-
-                                if ($now > $startTime && $endTime > $now) {
-                                    $isActiveTime = true;
-                                }
-
-                                if (!$isActiveTime) {
-                                    continue;
-                                }
-                            }
-                        }
-
-                        $progress = learnpath::getProgress($lpId, $userId, $courseId, $sessionId);
-                        $time = self::get_time_spent_in_lp($userId, $courseCode, [], $sessionId);
-                        $score = self::getAverageStudentScore($userId, $courseCode, [], $sessionId);
-
-                    }
-                }*/
             }
         }
 

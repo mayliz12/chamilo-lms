@@ -3150,7 +3150,7 @@ class Exercise
         $myRemindList = []
     ) {
         global $safe_lp_id, $safe_lp_item_id, $safe_lp_item_view_id;
-        $nbrQuestions = $this->getQuestionCount();
+        $nbrQuestions = $this->countQuestionsInExercise();
         $buttonList = [];
         $html = $label = '';
         $hotspot_get = isset($_POST['hotspot']) ? Security::remove_XSS($_POST['hotspot']) : null;
@@ -3433,7 +3433,7 @@ class Exercise
                 $('#exercise_clock_warning').epiclock({
                     mode: $.epiclock.modes.countdown,
                     offset: {seconds: time_left},
-                    format: 'x:i:s',
+                    format: 'x:C:s',
                     renderer: 'minute'
                 }).bind('timer', function () {
                     onExpiredTimeExercise();
@@ -8771,24 +8771,17 @@ class Exercise
                             $title = $cut_title;
                         }
 
-                        $count_exercise_not_validated = (int) Event::count_exercise_result_not_validated(
+                        /*$count_exercise_not_validated = (int) Event::count_exercise_result_not_validated(
                             $my_exercise_id,
                             $courseId,
                             $sessionId
-                        );
-
-                        /*$move = Display::return_icon(
-                            'all_directions.png',
-                            get_lang('Move'),
-                            ['class' => 'moved', 'style' => 'margin-bottom:-0.5em;']
                         );*/
                         $move = null;
                         $class_tip = '';
-                        if (!empty($count_exercise_not_validated)) {
+                        /*if (!empty($count_exercise_not_validated)) {
                             $results_text = $count_exercise_not_validated == 1 ? get_lang('ResultNotRevised') : get_lang('ResultsNotRevised');
                             $title .= '<span class="exercise_tooltip" style="display: none;">'.$count_exercise_not_validated.' '.$results_text.' </span>';
-                            $class_tip = 'link_tooltip';
-                        }
+                        }*/
 
                         $url = $move.'<a '.$alt_title.' class="'.$class_tip.'" id="tooltip_'.$row['id'].'" href="overview.php?'.api_get_cidreq().$mylpid.$mylpitemid.'&exerciseId='.$row['id'].'">
                              '.Display::return_icon('quiz.png', $row['title']).'
@@ -9413,7 +9406,7 @@ class Exercise
         }
 
         if (empty($tableRows) && empty($categoryId)) {
-            if ($is_allowedToEdit && $origin != 'learnpath') {
+            if ($is_allowedToEdit && $origin !== 'learnpath') {
                 $content .= '<div id="no-data-view">';
                 $content .= '<h3>'.get_lang('Quiz').'</h3>';
                 $content .= Display::return_icon('quiz.png', '', [], 64);
@@ -9718,6 +9711,28 @@ class Exercise
         Session::erase('hotspot_coord');
         Session::erase('hotspot_dest');
         Session::erase('hotspot_delineation_result');
+    }
+
+    /**
+     * Get number of questions in exercise by user attempt.
+     *
+     * @return int
+     */
+    private function countQuestionsInExercise()
+    {
+        $lpId = isset($_REQUEST['learnpath_id']) ? (int) $_REQUEST['learnpath_id'] : 0;
+        $lpItemId = isset($_REQUEST['learnpath_item_id']) ? (int) $_REQUEST['learnpath_item_id'] : 0;
+        $lpItemViewId = isset($_REQUEST['learnpath_item_view_id']) ? (int) $_REQUEST['learnpath_item_view_id'] : 0;
+
+        $trackInfo = $this->get_stat_track_exercise_info($lpId, $lpItemId, $lpItemViewId);
+
+        if (!empty($trackInfo)) {
+            $questionIds = explode(',', $trackInfo['data_tracking']);
+
+            return count($questionIds);
+        }
+
+        return $this->getQuestionCount();
     }
 
     /**

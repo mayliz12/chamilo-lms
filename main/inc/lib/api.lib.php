@@ -192,6 +192,8 @@ define('LOG_GROUP_PORTAL_USER_UPDATE_ROLE', 'soc_gr_update_role');
 
 define('LOG_USER_DELETE', 'user_deleted');
 define('LOG_USER_CREATE', 'user_created');
+define('LOG_USER_UPDATE', 'user_updated');
+define('LOG_USER_PASSWORD_UPDATE', 'user_password_updated');
 define('LOG_USER_ENABLE', 'user_enable');
 define('LOG_USER_DISABLE', 'user_disable');
 define('LOG_USER_ANONYMIZE', 'user_anonymized');
@@ -6474,16 +6476,23 @@ function api_request_uri()
     return $uri;
 }
 
-/** Gets the current access_url id of the Chamilo Platform
- * @author Julio Montoya <gugli100@gmail.com>
+/**
+ * Gets the current access_url id of the Chamilo Platform.
  *
- * @return int access_url_id of the current Chamilo Installation
+ * @return int access_url_id of the current Chamilo Installation or 1 if multiple_access_urls is not enabled
+ *
+ * @author Julio Montoya <gugli100@gmail.com>
  */
 function api_get_current_access_url_id()
 {
     static $id;
     if (!empty($id)) {
         return $id;
+    }
+    if (!api_get_multiple_access_url()) {
+        // If the feature is not enabled, assume 1 and return before querying
+        // the database
+        return 1;
     }
 
     $table = Database::get_main_table(TABLE_MAIN_ACCESS_URL);
@@ -7494,6 +7503,8 @@ function api_get_multiple_access_url()
 }
 
 /**
+ * Just a synonym for api_get_multiple_access_url().
+ *
  * @return bool
  */
 function api_is_multiple_url_enabled()
@@ -8583,9 +8594,7 @@ function convert_double_quote_to_single($in_text)
  */
 function api_get_origin()
 {
-    $origin = isset($_REQUEST['origin']) ? Security::remove_XSS($_REQUEST['origin']) : '';
-
-    return $origin;
+    return isset($_REQUEST['origin']) ? Security::remove_XSS($_REQUEST['origin']) : '';
 }
 
 /**
@@ -8933,6 +8942,10 @@ function api_mail_html(
     $sendErrorTo = ''
 ) {
     global $platform_email;
+
+    if (true === api_get_configuration_value('disable_send_mail')) {
+        return true;
+    }
 
     $mail = new PHPMailer();
     $mail->Mailer = $platform_email['SMTP_MAILER'];
@@ -9652,6 +9665,10 @@ function api_find_template($template)
 }
 
 /**
+ * Returns an array of languages (English names like "english", "french", etc)
+ * to ISO 639-1 codes (fr, es, etc) for use (for example) to show flags
+ * Note: 'english' is returned as 'gb'.
+ *
  * @return array
  */
 function api_get_language_list_for_flag()
@@ -9672,6 +9689,11 @@ function api_get_language_list_for_flag()
 }
 
 /**
+ * Generate the Javascript required for the on-page translation of
+ * multi-language strings.
+ *
+ * @throws Exception
+ *
  * @return string
  */
 function api_get_language_translate_html()
@@ -9750,4 +9772,57 @@ function api_get_language_translate_html()
                 }
             });
     ';
+}
+
+/**
+ * Filter a multi-language HTML string (for the multi-language HTML
+ * feature) into the given language (strip the rest).
+ *
+ * @param string $htmlString The HTML string to "translate". Usually <p><span lang="en">Some string</span></p><p><span lang="fr">Une chaîne</span></p>
+ * @param string $language   The language in which we want to get the
+ *
+ * @throws Exception
+ *
+ * @return string The filtered string in the given language, or the full string if no translated string was identified
+ */
+function api_get_filtered_multilingual_HTML_string($htmlString, $language = null)
+{
+    if (api_get_configuration_value('translate_html') != true) {
+        return $htmlString;
+    }
+    $userInfo = api_get_user_info();
+    $languageId = 0;
+    if (!empty($language)) {
+        $languageId = api_get_language_id($language);
+    } elseif (!empty($userInfo['language'])) {
+        $languageId = api_get_language_id($userInfo['language']);
+    }
+    $languageInfo = api_get_language_info($languageId);
+    $isoCode = 'en';
+
+    if (!empty($languageInfo)) {
+        $isoCode = $languageInfo['isocode'];
+    }
+
+    // Split HTML in the separate language strings
+    // Note: some strings might look like <p><span ..>...</span></p> but others might be like combine 2 <span> in 1 <p>
+    if (!preg_match('/<span.*?lang="(\w\w)">/is', $htmlString)) {
+        return $htmlString;
+    }
+    $matches = [];
+    preg_match_all('/<span.*?lang="(\w\w)">(.*?)<\/span>/is', $htmlString, $matches);
+    if (!empty($matches)) {
+        // matches[0] are the full string
+        // matches[1] are the languages
+        // matches[2] are the strings
+        foreach ($matches[1] as $id => $match) {
+            if ($match == $isoCode) {
+                return $matches[2][$id];
+            }
+        }
+        // Could find the pattern but could not find our language. Return the first language found.
+        return $matches[2][0];
+    }
+    // Could not find pattern. Just return the whole string. We shouldn't get here.
+    return $htmlString;
 }

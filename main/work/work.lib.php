@@ -3012,8 +3012,8 @@ function getWorkComments($work)
     $commentTable = Database::get_course_table(TABLE_STUDENT_PUBLICATION_ASSIGNMENT_COMMENT);
     $userTable = Database::get_main_table(TABLE_MAIN_USER);
 
-    $courseId = intval($work['c_id']);
-    $workId = intval($work['id']);
+    $courseId = (int) $work['c_id'];
+    $workId = (int) $work['id'];
 
     if (empty($courseId) || empty($workId)) {
         return [];
@@ -3503,7 +3503,20 @@ function getWorkCommentForm($work, $workParent)
 
     $qualification = $workParent['qualification'];
 
-    if (api_is_allowed_to_edit()) {
+    $isCourseManager = api_is_platform_admin() || api_is_coach() || api_is_allowed_to_edit(false, false, true);
+    $allowEdition = false;
+    if ($isCourseManager) {
+        $allowEdition = true;
+        if (!empty($work['qualification']) && api_get_configuration_value('block_student_publication_score_edition')) {
+            $allowEdition = false;
+        }
+    }
+
+    if (api_is_platform_admin()) {
+        $allowEdition = true;
+    }
+
+    if ($allowEdition) {
         if (!empty($qualification) && intval($qualification) > 0) {
             $model = ExerciseLib::getCourseScoreModel();
             if (empty($model)) {
