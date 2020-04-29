@@ -85,7 +85,8 @@ class bbb
                     // Course check
                     $courseInfo = api_get_course_info();
                     if ($courseInfo) {
-                        $this->groupSupport = api_get_course_setting(
+                        $this->groupSupport = api_get_course_plugin_setting(
+                                'bbb',
                                 'bbb_enable_conference_in_groups',
                                 $courseInfo
                             ) === '1';
@@ -351,15 +352,13 @@ class bbb
             $params['user_id'] = (int) $this->userId;
         }
 
-        $params['attendee_pw'] = isset($params['attendee_pw']) ? $params['attendee_pw'] : $this->getUserMeetingPassword(
-        );
+        $params['attendee_pw'] = isset($params['attendee_pw']) ? $params['attendee_pw'] : $this->getUserMeetingPassword();
         $attendeePassword = $params['attendee_pw'];
-        $params['moderator_pw'] = isset($params['moderator_pw']) ? $params['moderator_pw'] : $this->getModMeetingPassword(
-        );
+        $params['moderator_pw'] = isset($params['moderator_pw']) ? $params['moderator_pw'] : $this->getModMeetingPassword();
         $moderatorPassword = $params['moderator_pw'];
 
-        $params['record'] = api_get_course_setting('big_blue_button_record_and_store') == 1 ? true : false;
-        $max = api_get_course_setting('big_blue_button_max_students_allowed');
+        $params['record'] = api_get_course_plugin_setting('bbb', 'big_blue_button_record_and_store') == 1 ? true : false;
+        $max = api_get_course_plugin_setting('bbb', 'big_blue_button_max_students_allowed');
         $max = isset($max) ? $max : -1;
 
         $params['status'] = 1;
@@ -383,6 +382,16 @@ class bbb
         $id = Database::insert($this->table, $params);
 
         if ($id) {
+            Event::addEvent(
+                'bbb_create_meeting',
+                'meeting_id',
+                (int) $id,
+                null,
+                api_get_user_id(),
+                api_get_course_int_id(),
+                api_get_session_id()
+            );
+
             $meetingName = isset($params['meeting_name']) ? $params['meeting_name'] : $this->getCurrentVideoConferenceName(
             );
             $welcomeMessage = isset($params['welcome_msg']) ? $params['welcome_msg'] : null;

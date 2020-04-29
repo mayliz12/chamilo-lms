@@ -29,6 +29,7 @@ class ch_yesno extends survey_question
             'Width' => '100%',
             'Height' => '120',
         ];
+
         $this->getForm()->addHtmlEditor(
             'answers[0]',
             get_lang('AnswerOptions'),
@@ -36,6 +37,7 @@ class ch_yesno extends survey_question
             false,
             $config
         );
+
         $this->getForm()->addHtmlEditor(
             'answers[1]',
             null,
@@ -43,6 +45,12 @@ class ch_yesno extends survey_question
             false,
             $config
         );
+
+        if (isset($formData['answersid']) && !empty($formData['answersid'])) {
+            foreach ($formData['answersid'] as $value) {
+                $this->getForm()->addHidden('answersid[]', $value);
+            }
+        }
     }
 
     /**
@@ -54,7 +62,7 @@ class ch_yesno extends survey_question
         if (is_array($questionData['options'])) {
             $class = 'radio-inline';
             $labelClass = 'radio-inline';
-            if ($questionData['display'] == 'vertical') {
+            if ($questionData['display'] === 'vertical') {
                 $class = 'radio-vertical';
             }
 
@@ -64,6 +72,7 @@ class ch_yesno extends survey_question
             if (!empty($questionData['is_required'])) {
                 $radioAttributes['required'] = 'required';
             }
+
             $form->addRadio(
                 $name,
                 null,

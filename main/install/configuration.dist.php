@@ -551,6 +551,7 @@ ALTER TABLE c_survey_question ADD is_required TINYINT(1) DEFAULT 0 NOT NULL;
 // Add "send_to_coaches" checkbox field in: main/admin/extra_fields.php?type=scheduled_announcement&action=add
 //$_configuration['allow_scheduled_announcements'] = false;
 // Add the list of emails as a bcc when sending an email.
+// Configure a cron task pointing at main/cron/scheduled_announcement.php
 /*
 $_configuration['send_all_emails_to'] = [
     'emails' => [
@@ -1475,6 +1476,24 @@ $_configuration['course_catalog_settings'] = [
 
 /* Show download files button after finishing all LP. Example: ABC is the course code, and 1 and 100 are the doc id
 $_configuration['download_files_after_all_lp_finished'] = ['courses' => ['ABC' => [1, 100]]];
+*/
+
+// Show/Hide password field in user profile. Adds a customizable link depending on the user status.
+/*
+$_configuration['auth_password_links'] = [
+    'profiles' => [
+        5 => [
+            'azure' => [
+                'show_password_field' => false,
+                'extra_link' => '<h4>Change!</h4><a href="www.example.com">Wachtwoord aanpassen</span></a>'
+            ],
+            'extldap' => [
+                'show_password_field' => true,
+                'extra_link' => '<h4>Change!</h4><a href="www.example.com">Wachtwoord aanpassen</span></a>'
+            ]
+        ]
+    ]
+];
 */
 
 // KEEP THIS AT THE END

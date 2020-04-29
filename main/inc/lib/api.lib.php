@@ -1380,9 +1380,8 @@ function api_get_navigator()
     if (strpos($version, '.') === false) {
         $version = number_format(doubleval($version), 1);
     }
-    $return = ['name' => $navigator, 'version' => $version];
 
-    return $return;
+    return ['name' => $navigator, 'version' => $version];
 }
 
 /**
@@ -1967,11 +1966,32 @@ function api_get_course_setting($settingName, $courseInfo = [], $force = false)
         }
     }
 
-    if (isset($courseSettingInfo[$courseId]) && isset($courseSettingInfo[$courseId][$settingName])) {
+    if (isset($courseSettingInfo[$courseId]) && array_key_exists($settingName, $courseSettingInfo[$courseId])) {
         return $courseSettingInfo[$courseId][$settingName];
     }
 
     return -1;
+}
+
+function api_get_course_plugin_setting($plugin, $settingName, $courseInfo = [])
+{
+    $value = api_get_course_setting($settingName, $courseInfo, true);
+
+    if (-1 === $value) {
+        // Check global settings
+        $value = api_get_plugin_setting($plugin, $settingName);
+        if ($value === 'true') {
+            return 1;
+        }
+        if ($value === 'false') {
+            return 0;
+        }
+        if (null === $value) {
+            return -1;
+        }
+    }
+
+    return $value;
 }
 
 /**
@@ -2009,7 +2029,8 @@ function api_get_anonymous_id()
                     break;
                 }
             }
-            $userId = UserManager::create_user(
+            // Return the user ID
+            return UserManager::create_user(
                 $login,
                 'anon',
                 ANONYMOUS,
@@ -2017,8 +2038,6 @@ function api_get_anonymous_id()
                 $login,
                 $login
             );
-
-            return $userId;
         } else {
             $row = Database::fetch_array($result, 'ASSOC');
 
@@ -2507,7 +2526,7 @@ function api_clear_anonymous($db_check = false)
  *
  * @author Noel Dieschburg
  *
- * @param the int status code
+ * @param int $status_code The integer status code (usually in the form of a constant)
  *
  * @return string
  */
@@ -2522,7 +2541,23 @@ function get_status_from_code($status_code)
             return get_lang('SessionsAdmin', '');
         case DRH:
             return get_lang('Drh', '');
+        case ANONYMOUS:
+            return get_lang('Anonymous', '');
+        case PLATFORM_ADMIN:
+            return get_lang('Administrator', '');
+        case SESSION_COURSE_COACH:
+            return get_lang('SessionCourseCoach', '');
+        case SESSION_GENERAL_COACH:
+            return get_lang('SessionGeneralCoach', '');
+        case COURSE_TUTOR:
+            return get_lang('CourseAssistant', '');
+        case STUDENT_BOSS:
+            return get_lang('StudentBoss', '');
+        case INVITEE:
+            return get_lang('Invitee', '');
     }
+
+    return '';
 }
 
 /**
@@ -2861,11 +2896,10 @@ function api_get_plugin_setting($plugin, $variable)
 
     if (isset($result[$plugin])) {
         $value = $result[$plugin];
+        $unSerialized = UnserializeApi::unserialize('not_allowed_classes', $value, true);
 
-        $unserialized = UnserializeApi::unserialize('not_allowed_classes', $value, true);
-
-        if (false !== $unserialized) {
-            $value = $unserialized;
+        if (false !== $unSerialized) {
+            $value = $unSerialized;
         }
 
         return $value;
@@ -2880,9 +2914,8 @@ function api_get_plugin_setting($plugin, $variable)
 function api_get_settings_params($params)
 {
     $table = Database::get_main_table(TABLE_MAIN_SETTINGS_CURRENT);
-    $result = Database::select('*', $table, ['where' => $params]);
 
-    return $result;
+    return Database::select('*', $table, ['where' => $params]);
 }
 
 /**
@@ -2893,9 +2926,8 @@ function api_get_settings_params($params)
 function api_get_settings_params_simple($params)
 {
     $table = Database::get_main_table(TABLE_MAIN_SETTINGS_CURRENT);
-    $result = Database::select('*', $table, ['where' => $params], 'one');
 
-    return $result;
+    return Database::select('*', $table, ['where' => $params], 'one');
 }
 
 /**
@@ -3280,6 +3312,7 @@ function api_display_tool_title($title_element)
     if (is_string($title_element)) {
         $tit = $title_element;
         unset($title_element);
+        $title_element = [];
         $title_element['mainTitle'] = $tit;
     }
     echo '<h3>';
@@ -3601,6 +3634,8 @@ function api_is_allowed_to_session_edit($tutor = false, $coach = false)
             }
         }
     }
+
+    return false;
 }
 
 /**
@@ -3626,7 +3661,7 @@ function api_is_allowed($tool, $action, $task_id = 0)
     }
 
     if (is_array($_course) and count($_course) > 0) {
-        require_once api_get_path(SYS_CODE_PATH).'permissions/permissions_functions.inc.php';
+        require_once __DIR__.'/../../permissions/permissions_functions.inc.php';
 
         // Getting the permissions of this user.
         if ($task_id == 0) {
@@ -3682,6 +3717,8 @@ function api_is_allowed($tool, $action, $task_id = 0)
             return false;
         }
     }
+
+    return false;
 }
 
 /**
@@ -3967,7 +4004,7 @@ function api_get_not_allowed_login_form()
 /**
  * Gets a UNIX timestamp from a database (MySQL) datetime format string.
  *
- * @param $last_post_datetime standard output date in a sql query
+ * @param string $last_post_datetime standard output date in a sql query
  *
  * @return int timestamp
  *
@@ -4742,7 +4779,7 @@ function api_display_language_form($hide_if_no_choice = false, $showAsButton = f
     // Retrieve a complete list of all the languages.
     $language_list = api_get_languages();
     if (count($language_list['name']) <= 1 && $hide_if_no_choice) {
-        return; //don't show any form
+        return null; //don't show any form
     }
 
     // The the current language of the user so that his/her language occurs as selected in the dropdown menu.
@@ -5055,6 +5092,19 @@ function api_get_visual_theme()
 {
     static $visual_theme;
     if (!isset($visual_theme)) {
+        $cacheAvailable = api_get_configuration_value('apc');
+        $userThemeAvailable = api_get_setting('user_selected_theme') == 'true';
+        $courseThemeAvailable = api_get_setting('allow_course_theme') == 'true';
+        // only use a shared cache if no user-based or course-based theme is allowed
+        $useCache = ($cacheAvailable && !$userThemeAvailable && !$courseThemeAvailable);
+        $apcVar = '';
+        if ($useCache) {
+            $apcVar = api_get_configuration_value('apc_prefix').'my_campus_visual_theme';
+            if (apcu_exists($apcVar)) {
+                return apcu_fetch($apcVar);
+            }
+        }
+
         // Get style directly from DB
         $styleFromDatabase = api_get_settings_params_simple(
             [
@@ -5072,7 +5122,7 @@ function api_get_visual_theme()
 
         // Platform's theme.
         $visual_theme = $platform_theme;
-        if (api_get_setting('user_selected_theme') == 'true') {
+        if ($userThemeAvailable) {
             $user_info = api_get_user_info();
             if (isset($user_info['theme'])) {
                 $user_theme = $user_info['theme'];
@@ -5086,7 +5136,7 @@ function api_get_visual_theme()
 
         $course_id = api_get_course_id();
         if (!empty($course_id)) {
-            if (api_get_setting('allow_course_theme') == 'true') {
+            if ($courseThemeAvailable) {
                 $course_theme = api_get_course_setting('course_theme', api_get_course_info());
 
                 if (!empty($course_theme) && $course_theme != -1) {
@@ -5117,6 +5167,9 @@ function api_get_visual_theme()
         global $lp_theme_log;
         if ($lp_theme_log) {
             $visual_theme = $platform_theme;
+        }
+        if ($useCache) {
+            apcu_store($apcVar, $visual_theme, 120);
         }
     }
 
@@ -5397,12 +5450,10 @@ function rmdirr($dirname, $delete_only_content_in_folder = false, $strict = fals
  * function adapted from a php.net comment
  * copy recursively a folder.
  *
- * @param the source folder
- * @param the dest folder
- * @param an array of excluded file_name (without extension)
- * @param copied_files the returned array of copied files
- * @param string $source
- * @param string $dest
+ * @param string $source       the source folder
+ * @param string $dest         the dest folder
+ * @param array  $exclude      an array of excluded file_name (without extension)
+ * @param array  $copied_files the returned array of copied files
  */
 function copyr($source, $dest, $exclude = [], $copied_files = [])
 {
@@ -8527,7 +8578,7 @@ function exist_firstpage_parameter()
 }
 
 /**
- * @return return the course_code of the course where user login
+ * @return string return the course_code of the course where user login
  */
 function api_get_firstpage_parameter()
 {
@@ -8893,7 +8944,7 @@ function api_create_protected_dir($name, $parentDirectory)
         $fp = fopen($fullPath.'/index.html', 'w');
 
         if ($fp) {
-            if (fwrite($fp, '<html><head></head><body></body></html>')) {
+            if (fwrite($fp, '<html><head><title></title></head><body></body></html>')) {
                 $isCreated = true;
             }
         }
@@ -9145,6 +9196,8 @@ function api_mail_html(
 }
 
 /**
+ * Checks access to a course group.
+ *
  * @param string $tool       Possible values: GroupManager::GROUP_TOOL_*
  * @param bool   $showHeader
  */
@@ -9192,6 +9245,8 @@ function api_protect_course_group($tool, $showHeader = true)
             api_not_allowed($showHeader);
         }
     }
+
+    return false;
 }
 
 /**
@@ -9313,9 +9368,9 @@ function api_upload_file($type, $file, $itemId, $cropParameters = '')
 
             return ['path_to_save' => $pathId.$name];
         }
-
-        return false;
     }
+
+    return false;
 }
 
 /**
@@ -9602,7 +9657,7 @@ function api_unserialize_content($type, $serialized, $ignoreErrors = false)
 /**
  * Set the From and ReplyTo properties to PHPMailer instance.
  *
- * @throws phpmailerException
+ * @throws \PHPMailer\PHPMailer\Exception
  */
 function api_set_noreply_and_from_address_to_mailer(PHPMailer $mailer, array $sender, array $replyToAddress = [])
 {

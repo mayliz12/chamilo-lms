@@ -1,4 +1,5 @@
 <?php
+
 /* For licensing terms, see /license.txt */
 
 use ChamiloSession as Session;
@@ -33,16 +34,15 @@ class survey_question
         $url = api_get_path(WEB_AJAX_PATH).'survey.ajax.php?'.api_get_cidreq();
         $form->addHtml('
             <script>
-                $(function() {                    
+                $(function() {
                     $("#parent_id").on("change", function() {
                         var questionId = $(this).val()
                         var params = {
                             "a": "load_question_options",
                             "survey_id": "'.$surveyId.'",
                             "question_id": questionId,
-                        };    
-                            
-                          $.ajax({
+                        };
+                        $.ajax({
                             type: "GET",
                             url: "'.$url.'",
                             data: params,
@@ -50,8 +50,7 @@ class survey_question
                             success: function(data) {
                                 $("#parent_options").html(data);
                             }
-                        });        
-                        console.log(); 
+                        });
                     });
                 });
             </script>
@@ -88,6 +87,10 @@ class survey_question
                 return new ch_score();
             case 'yesno':
                 return new ch_yesno();
+            case 'selectivedisplay':
+                return new ch_selectivedisplay();
+            case 'multiplechoiceother':
+                return new ch_multiplechoiceother();
             default:
                 api_not_allowed(true);
                 break;
@@ -109,37 +112,53 @@ class survey_question
         $surveyId = isset($_GET['survey_id']) ? (int) $_GET['survey_id'] : null;
         $type = isset($_GET['type']) ? Security::remove_XSS($_GET['type']) : null;
 
-        $toolName = Display::return_icon(
-            SurveyManager::icon_question($type),
-            get_lang(ucfirst($type)),
-            ['align' => 'middle', 'height' => '22px']
-        ).' ';
-
-        if ($action == 'add') {
-            $toolName .= get_lang('AddQuestion').': ';
-        } elseif ($action == 'edit') {
-            $toolName .= get_lang('EditQuestion').': ';
+        $actionHeader = get_lang('EditQuestion').': ';
+        if ($action === 'add') {
+            $actionHeader = get_lang('AddQuestion').': ';
         }
 
-        switch ($_GET['type']) {
+        $questionComment = '';
+        switch ($type) {
+            case 'open':
+                $toolName = get_lang('Open');
+                $questionComment = get_lang('QuestionTags');
+                break;
             case 'yesno':
-                $toolName .= get_lang('YesNo');
+                $toolName = get_lang('YesNo');
                 break;
             case 'multiplechoice':
-                $toolName .= get_lang('UniqueSelect');
+                $toolName = get_lang('UniqueSelect');
                 break;
             case 'multipleresponse':
-                $toolName .= get_lang('MultipleResponse');
+                $toolName = get_lang('MultipleResponse');
+                break;
+            case 'selectivedisplay':
+                $toolName = get_lang('SurveyQuestionSelectiveDisplay');
+                $questionComment = get_lang('SurveyQuestionSelectiveDisplayComment');
+                break;
+            case 'multiplechoiceother':
+                $toolName = get_lang('SurveyMultipleAnswerWithOther');
+                //$questionComment = get_lang('SurveyQuestionSelectiveDisplayComment');
                 break;
             default:
-                $toolName .= get_lang(api_ucfirst($type));
+                $toolName = get_lang(api_ucfirst($type));
         }
 
+        $icon = Display::return_icon(
+                SurveyManager::icon_question($type),
+                $toolName,
+                ['align' => 'middle', 'height' => '22px']
+            ).' ';
+
+        $toolName = $icon.$actionHeader.$toolName;
         $sharedQuestionId = isset($formData['shared_question_id']) ? $formData['shared_question_id'] : null;
 
         $url = api_get_self().'?action='.$action.'&type='.$type.'&survey_id='.$surveyId.'&question_id='.$questionId.'&'.api_get_cidreq();
         $form = new FormValidator('question_form', 'post', $url);
         $form->addHeader($toolName);
+        if (!empty($questionComment)) {
+            $form->addHtml(Display::return_message($questionComment, 'info', false));
+        }
         $form->addHidden('survey_id', $surveyId);
         $form->addHidden('question_id', $questionId);
         $form->addHidden('shared_question_id', Security::remove_XSS($sharedQuestionId));
@@ -163,11 +182,10 @@ class survey_question
             $form->addCheckBox('is_required', get_lang('IsMandatory'), get_lang('Yes'));
         }
 
-        // When survey type = 1??
         if ($surveyData['survey_type'] == 1) {
             $table_survey_question_group = Database::get_course_table(TABLE_SURVEY_QUESTION_GROUP);
-            $sql = 'SELECT id,name FROM '.$table_survey_question_group.'
-                    WHERE survey_id = '.(int) $_GET['survey_id'].'
+            $sql = 'SELECT id, name FROM '.$table_survey_question_group.'
+                    WHERE survey_id = '.$surveyId.'
                     ORDER BY name';
             $rs = Database::query($sql);
             $glist = null;
@@ -200,19 +218,18 @@ class survey_question
                 );
             }
 
-            $this->html .= '	<tr><td colspan="">
-			<fieldset style="border:1px solid black"><legend>'.get_lang('Condition').'</legend>
-
-			<b>'.get_lang('Primary').'</b><br />
-			'.'<input type="radio" name="choose" value="1" '.(($formData['choose'] == 1) ? 'checked' : '').
-                '><select name="assigned">'.$grouplist.'</select><br />';
-
+            $this->html .= '<tr><td colspan="">
+			<fieldset style="border:1px solid black">
+			    <legend>'.get_lang('Condition').'</legend>
+			    <b>'.get_lang('Primary').'</b><br />
+			    <input type="radio" name="choose" value="1" '.(($formData['choose'] == 1) ? 'checked' : '').'>
+			    <select name="assigned">'.$grouplist.'</select><br />';
             $this->html .= '
 			<b>'.get_lang('Secondary').'</b><br />
-			'.'<input type="radio" name="choose" value="2" '.(($formData['choose'] == 2) ? 'checked' : '').
-                '><select name="assigned1">'.$grouplist1.'</select> '.
-                '<select name="assigned2">'.$grouplist2.'</select>'
-                .'</fieldset><br />';
+			    <input type="radio" name="choose" value="2" '.(($formData['choose'] == 2) ? 'checked' : '').'>
+			    <select name="assigned1">'.$grouplist1.'</select>
+                <select name="assigned2">'.$grouplist2.'</select>
+            </fieldset><br />';
         }
 
         $this->setForm($form);
@@ -239,7 +256,8 @@ class survey_question
                     <div class="form-group">
                         <label class="col-sm-2 control-label"></label>
                         <div class="col-sm-8">
-                            <div class="alert alert-info">'.get_lang('YouCantNotEditThisQuestionBecauseAlreadyExistAnswers').'</div>
+                            <div class="alert alert-info">'.
+                            get_lang('YouCantNotEditThisQuestionBecauseAlreadyExistAnswers').'</div>
                         </div>
                         <div class="col-sm-2"></div>
                     </div>
@@ -330,25 +348,35 @@ class survey_question
             }
 
             $newAnswers = [];
+            $newAnswersId = [];
             foreach ($formData['answers'] as $key => &$value) {
                 if ($key > $deleted) {
                     // swap with previous (deleted) option slot
                     $newAnswers[$key - 1] = $formData['answers'][$key];
+                    $newAnswersId[$key - 1] = $formData['answersid'][$key];
                     unset($formData['answers'][$key]);
+                    unset($formData['answersid'][$key]);
                 } elseif ($key === $deleted) {
                     // delete option
                     unset($formData['answers'][$deleted]);
+                    unset($formData['answersid'][$deleted]);
                 } else {
                     // keep as is
                     $newAnswers[$key] = $value;
+                    $newAnswersId[$key] = $formData['answersid'][$key];
                 }
             }
             unset($formData['answers']);
+            unset($formData['answersid']);
             $formData['answers'] = $newAnswers;
+            $formData['answersid'] = $newAnswersId;
         }
 
         // Adding an answer
         if (isset($_POST['buttons']) && isset($_POST['buttons']['add_answer'])) {
+            if (isset($_REQUEST['type']) && 'multiplechoiceother' === $_REQUEST['type']) {
+                $counter--;
+            }
             $counter++;
             Session::write('answer_count', $counter);
         }
@@ -360,6 +388,7 @@ class survey_question
             foreach ($formData['answers'] as $index => &$data) {
                 if ($index > $counter) {
                     unset($formData['answers'][$index]);
+                    unset($formData['answersid'][$index]);
                 }
             }
         }
@@ -400,19 +429,17 @@ class survey_question
      *
      * @return mixed
      */
-    public function save($surveyData, $formData)
+    public function save($surveyData, $formData, $dataFromDatabase = [])
     {
         // Saving a question
         if (isset($_POST['buttons']) && isset($_POST['buttons']['save'])) {
             Session::erase('answer_count');
             Session::erase('answer_list');
-            $message = SurveyManager::save_question(
-                $surveyData,
-                $formData
-            );
+            $message = SurveyManager::save_question($surveyData, $formData, true, $dataFromDatabase);
 
-            if ($message == 'QuestionAdded' || $message == 'QuestionUpdated') {
-                header('Location: '.api_get_path(WEB_CODE_PATH).'survey/survey.php?survey_id='.intval($_GET['survey_id']).'&message='.$message.'&'.api_get_cidreq());
+            if ($message === 'QuestionAdded' || $message === 'QuestionUpdated') {
+                $url = api_get_path(WEB_CODE_PATH).'survey/survey.php?survey_id='.intval($_GET['survey_id']).'&message='.$message.'&'.api_get_cidreq();
+                header('Location: '.$url);
                 exit;
             }
         }
