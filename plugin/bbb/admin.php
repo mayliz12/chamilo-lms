@@ -20,14 +20,15 @@ $isGlobal = isset($_GET['global']) ? true : false;
 
 $bbb = new bbb('', '', $isGlobal);
 $action = isset($_GET['action']) ? $_GET['action'] : null;
-
+$currentDay = date("Y-m-d");
+$yesterday = date('Y-m-d', mktime(0, 0, 0, date('m'),date('d')-1,date('Y')));
 $currentMonth = date('n');
 $dateStart = isset($_REQUEST['search_meeting_start']) ? $_REQUEST['search_meeting_start'] : date('Y-m-d', mktime(1, 1, 1, $currentMonth, 1, date('Y')));
 $dateEnd = isset($_REQUEST['search_meeting_end']) ? $_REQUEST['search_meeting_end'] : date('Y-m-d', mktime(1, 1, 1, ++$currentMonth, 0, date('Y')));
 
 $dateRange = [
-    'search_meeting_start' => $dateStart,
-    'search_meeting_end' => $dateEnd,
+    'search_meeting_start' => $yesterday,
+    'search_meeting_end' => $currentDay,
 ];
 
 $form = new FormValidator(get_lang('Search'));

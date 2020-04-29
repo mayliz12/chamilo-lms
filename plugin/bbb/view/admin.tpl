@@ -7,6 +7,7 @@
             <th>{{ 'Records'|get_plugin_lang('BBBPlugin') }}</th>
             <th>{{ 'Course'|get_lang }}</th>
             <th>{{ 'Session'|get_lang }}</th>
+{#            <th>{{ 'OpeningRoom'|get_lang }}</th>#}
             <th>{{ 'Participants'|get_lang }}</th>
             <th>{{ 'Actions'|get_lang }}</th>
         </tr>
@@ -36,6 +37,7 @@
                 </td>
                 <td>{{ meeting.course ?: '-' }}</td>
                 <td>{{ meeting.session ?: '-' }}</td>
+
                 <td>
                     {{ meeting.participants ? meeting.participants|join('<br>') : '-' }}
                 </td>

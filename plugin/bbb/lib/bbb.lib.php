@@ -947,6 +947,7 @@ class bbb
         );
         $isGlobal = $this->isGlobalConference();
         $newMeetingList = array();
+
         foreach ($meetingList as $meetingDB) {
             $item = array();
             $courseId = $meetingDB['c_id'];
