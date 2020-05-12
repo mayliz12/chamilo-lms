@@ -10,6 +10,7 @@ class AdvancedReportsPlugin extends Plugin
     protected function __construct()
     {
         $settings = [
+
         ];
 
         parent::__construct('0.1', 'Francis Gonzales', $settings);
@@ -68,9 +69,12 @@ class AdvancedReportsPlugin extends Plugin
         $nbStudents = count($studentList);
         $GLOBALS['user_ids'] = array_keys($studentList);
 
-        $usersTracking = TrackingCourseLog::get_user_data(
-            null, $nbStudents, null, null, false
-        );
+        $usersTracking = array();
+        if (!empty($nbStudents)) {
+            $usersTracking = TrackingCourseLog::get_user_data(
+                null, $nbStudents, null, null, false
+            );
+        }
         // Rename Columns
         $userList[] = array(
             'Código Oficial',
@@ -84,23 +88,26 @@ class AdvancedReportsPlugin extends Plugin
             'Primera Conexión',
             'Ultima conexión'
         );
-        foreach ($usersTracking as $userRow) {
-            $userList[] = array(
-                'official_code' => $userRow[0],
-                'lastname' => $userRow[1],
-                'firstname' => $userRow[2],
-                'username' => $userRow[3],
-                'time' => $userRow[4],
-                'average_progress' => $userRow[5],
-                'exercise_progress' => $userRow[6],
-                'exercise_average_best_attempt' => $userRow[7],
-                //'student_score' => $userRow[8],
-                //'count_assignments' => $userRow[9],
-                //'count_messages' => $userRow[10],
-                //'classes' => $userRow[11],
-                'first_connection' => $userRow[12],
-                'last_connection' => $userRow[13],
-            );
+
+        if (!empty($usersTracking)) {
+            foreach ($usersTracking as $userRow) {
+                $userList[] = array(
+                    'official_code' => $userRow[0],
+                    'lastname' => $userRow[1],
+                    'firstname' => $userRow[2],
+                    'username' => $userRow[3],
+                    'time' => $userRow[4],
+                    'average_progress' => $userRow[5],
+                    'exercise_progress' => $userRow[6],
+                    'exercise_average_best_attempt' => $userRow[7],
+                    //'student_score' => $userRow[8],
+                    //'count_assignments' => $userRow[9],
+                    //'count_messages' => $userRow[10],
+                    //'classes' => $userRow[11],
+                    'first_connection' => $userRow[12],
+                    'last_connection' => $userRow[13],
+                );
+            }
         }
 
         return $userList;
